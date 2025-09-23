@@ -56,7 +56,7 @@ int main(int argc, char * argv[]) {
     );
 
     std::filesystem::path onnx_model_path = 
-        runfiles->Rlocation("orl-robot-drivers/onnx_models/wild-tree-10.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/young-sun-19.onnx");
     
     absl::Status result;
     auto ControllerDriver = std::make_shared<WirelessControllerDriver>();
@@ -145,9 +145,16 @@ int main(int argc, char * argv[]) {
                 ABSL_CHECK(result.ok()) << result.message();
             }
             
+            // Fast Control:
             float x_scale = 1.5f;
             float y_scale = 1.0f;
             float z_scale = 3.0f;
+            
+            // Slow Control:
+            // float x_scale = 1.5f;
+            // float y_scale = 1.0f;
+            // float z_scale = 1.2f;
+
             float x = x_scale * ControllerDriver->get_left_stick_y();
             float y = -1.0f * y_scale * ControllerDriver->get_left_stick_x();
             float z = -1.0f * z_scale * ControllerDriver->get_right_stick_x();
