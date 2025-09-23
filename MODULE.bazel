@@ -2,7 +2,7 @@
     Robot Drivers ROS 2 Bazel Module:
 """
 module(
-    name = "robot-drivers-bazel"
+    name = "orl-robot-drivers"
 )
 
 # Platforms:
@@ -19,15 +19,6 @@ bazel_dep(name = "abseil-cpp", version = "20250512.0")
 
 # Eigen:
 bazel_dep(name = "eigen", version = "4.0.0-20241125.bcr.2")
-
-# ihmc-alexander-sdk
-bazel_dep(name = "ihmc-alexander-sdk")
-git_override(
-    module_name = "ihmc-alexander-sdk",
-    remote = "https://github.com/ihmcrobotics/ihmc-alexander-sdk.git",
-    commit = "945ef846c2e24f172869ccb7335836c6da6ec2ee",
-    patches = ["patches/ihmc-alexander-sdk/module_dot_bazel.patch", "patches/ihmc-alexander-sdk/build_dot_bazel.patch"],
-)
 
 # unitree_ros2
 bazel_dep(name = "unitree_ros2")

@@ -33,7 +33,7 @@ int main(int argc, char * argv[]) {
     );
 
     std::filesystem::path onnx_model_path = 
-        runfiles->Rlocation("robot-drivers-bazel/onnx_models/dainty-cloud-170.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/dainty-cloud-170.onnx");
     
     absl::Status result;
     auto RobotDriver = std::make_shared<H1_2_Driver>();

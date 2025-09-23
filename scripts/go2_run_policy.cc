@@ -56,7 +56,7 @@ int main(int argc, char * argv[]) {
     );
 
     std::filesystem::path onnx_model_path = 
-        runfiles->Rlocation("robot-drivers-bazel/onnx_models/wild-tree-10.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/wild-tree-10.onnx");
     
     absl::Status result;
     auto ControllerDriver = std::make_shared<WirelessControllerDriver>();
