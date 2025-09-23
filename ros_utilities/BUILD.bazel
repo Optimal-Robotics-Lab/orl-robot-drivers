@@ -1,0 +1,35 @@
+"""
+    Redundant ROS 2 utilities for command-line interaction.
+    These should be accessible from @com_github_mvukov_rules_ros2 but 
+    I am not sure what the correct targets are.
+"""
+load("@rules_python//python:defs.bzl", "py_binary", "py_library")
+
+py_library(
+    name = "ros2_cmd",
+    srcs = ["ros2_cmd.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@ros2cli",
+    ],
+)
+
+py_binary(
+    name = "ros2_node",
+    srcs = ["ros2_node.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ros2_cmd",
+        "@ros2cli//:ros2node",
+    ],
+)
+
+py_binary(
+    name = "ros2_topic",
+    srcs = ["ros2_topic.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":ros2_cmd",
+        "@ros2cli//:ros2topic",
+    ],
+)

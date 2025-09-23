@@ -1,0 +1,4 @@
+common --enable_bzlmod
+build --repo_env=BAZEL_CXXOPTS="-std=c++23"
+build --action_env=ROS_DOMAIN_ID=42
+build:opt --copt=-O3

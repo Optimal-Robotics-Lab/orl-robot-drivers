@@ -1,0 +1,9 @@
+--- /dev/null
++++ MODULE.bazel
+@@ -0,0 +1,6 @@
++"""
++    Bazel module for unitree_ros2
++"""
++module(
++    name = "unitree_ros2"
++)

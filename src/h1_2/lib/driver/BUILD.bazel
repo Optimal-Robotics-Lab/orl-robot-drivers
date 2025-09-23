@@ -1,0 +1,35 @@
+load("@com_github_mvukov_rules_ros2//ros2:cc_defs.bzl", "ros2_cpp_library")
+
+ros2_cpp_library(
+    name = "h1_2_driver",
+    srcs = ["h1_2_driver.cc"],
+    hdrs = ["h1_2_driver.h"],
+    deps = [
+        "//src/h1_2/lib/utils:constants",
+        "//src/h1_2/lib/utils:crc",
+        "//src/h1_2/lib/utils:utilities",
+        "//src/h1_2/msgs:unitree_hg_msgs",
+        "@ros2_rclcpp//:rclcpp",
+        "@abseil-cpp//absl/status:status",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+ros2_cpp_library(
+    name = "onnx_driver",
+    srcs = ["onnx_driver.cc"],
+    hdrs = ["onnx_driver.h"],
+    deps = [
+        ":h1_2_driver",
+        "//src/utils:constants",
+        "//src/h1_2/lib/utils:constants",
+        "//src/h1_2/lib/utils:utilities",
+        "//src/h1_2/msgs:unitree_hg_msgs",
+        "@eigen//:eigen",
+        "@onnxruntime-bazel//:onnxruntime",
+        "@ros2_rclcpp//:rclcpp",
+        "@abseil-cpp//absl/log:absl_check",
+        "@abseil-cpp//absl/status:status",
+    ],
+    visibility = ["//visibility:public"],
+)

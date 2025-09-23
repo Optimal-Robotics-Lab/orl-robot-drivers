@@ -1,0 +1,20 @@
+--- /dev/null
++++ BUILD.bazel
+@@ -0,0 +1,17 @@
++filegroup(
++    name = "unitree_api",
++    srcs = glob(["cyclonedds_ws/src/unitree/unitree_api/msg/*.msg"]),
++    visibility = ["//visibility:public"],
++)
++
++filegroup(
++    name = "unitree_go",
++    srcs = glob(["cyclonedds_ws/src/unitree/unitree_go/msg/*.msg"]),
++    visibility = ["//visibility:public"],
++)
++
++filegroup(
++    name = "unitree_hg",
++    srcs = glob(["cyclonedds_ws/src/unitree/unitree_hg/msg/*.msg"]),
++    visibility = ["//visibility:public"],
++)

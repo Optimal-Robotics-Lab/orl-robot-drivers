@@ -1,0 +1,36 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "constants",
+    srcs = ["constants.h"],
+    deps = [
+        "@eigen//:eigen",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "containers",
+    srcs = ["containers.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "crc",
+    srcs = ["crc.h"],
+    deps = [
+        ":containers",
+        "//src/h1_2/msgs:unitree_hg_msgs",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "utilities",
+    srcs = ["utilities.h"],
+    deps = [
+        ":constants",
+        "//src/h1_2/msgs:unitree_hg_msgs",
+    ],
+    visibility = ["//visibility:public"],
+)

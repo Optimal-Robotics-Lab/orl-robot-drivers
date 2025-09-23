@@ -1,0 +1,47 @@
+load("@com_github_mvukov_rules_ros2//ros2:cc_defs.bzl", "ros2_cpp_binary")
+
+ros2_cpp_binary(
+    name = "h1_2_run_policy",
+    srcs = ["h1_2_run_policy.cc"],
+    data = ["//onnx_models:onnx_models"],
+    deps = [
+        "//src/h1_2/lib/utils:constants",
+        "//src/h1_2/lib/utils:containers",
+        "//src/h1_2/lib/utils:utilities",
+        "//src/h1_2/lib/driver:onnx_driver",
+        "//src/h1_2/lib/driver:h1_2_driver",
+        "//src/h1_2/msgs:unitree_hg_msgs",
+        "@eigen//:eigen",
+        "@onnxruntime-bazel//:onnxruntime",
+        "@ros2_rclcpp//:rclcpp",
+        "@abseil-cpp//absl/log:absl_check",
+        "@abseil-cpp//absl/status:status",
+        "@rules_cc//cc/runfiles:runfiles",
+        "@bazel_tools//tools/cpp/runfiles",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+ros2_cpp_binary(
+    name = "go2_run_policy",
+    srcs = ["go2_run_policy.cc"],
+    data = ["//onnx_models:onnx_models"],
+    deps = [
+        "//src/go2/lib/utils:constants",
+        "//src/go2/lib/utils:containers",
+        "//src/go2/lib/utils:utilities",
+        "//src/go2/lib/driver:wireless_controller_driver",
+        "//src/go2/lib/driver:onnx_driver",
+        "//src/go2/lib/driver:go2_driver",
+        "//src/go2/msgs:unitree_go_msgs",
+        "@eigen//:eigen",
+        "@onnxruntime-bazel//:onnxruntime",
+        "@ros2_rclcpp//:rclcpp",
+        "@abseil-cpp//absl/log:absl_check",
+        "@abseil-cpp//absl/status:status",
+        "@rules_cc//cc/runfiles:runfiles",
+        "@bazel_tools//tools/cpp/runfiles",
+    ],
+    visibility = ["//visibility:public"],
+)
+

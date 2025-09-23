@@ -1,0 +1,32 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "constants",
+    srcs = ["constants.h"],
+    deps = [
+        "@eigen//:eigen",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "enum_converter_def",
+    srcs = ["enum_converter_def.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "enum_conversions",
+    srcs = ["enum_conversions.h"],
+    deps = [
+        ":enum_converter_def",
+        "//src/h1_2/lib/utils:constants",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "rapidcsv",
+    srcs = ["rapidcsv.h"],
+    visibility = ["//visibility:public"],
+)
