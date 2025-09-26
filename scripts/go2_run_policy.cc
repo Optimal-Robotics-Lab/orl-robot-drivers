@@ -116,15 +116,17 @@ int main(int argc, char * argv[]) {
 
             if (ControllerDriver->is_pressed(WirelessControllerDriver::Button::B)) {
                 std::cout << "Setting control mode to DAMPING." << std::endl;
-                result.Update(PolicyDriver->set_control_mode(go2::constants::HighLevelControlMode::DAMPING));
                 master_gain = 0.0f;
+                result.Update(PolicyDriver->set_master_gain(master_gain));
+                result.Update(PolicyDriver->set_control_mode(go2::constants::HighLevelControlMode::DAMPING));
                 ABSL_CHECK(result.ok()) << result.message();
             }
 
             if (ControllerDriver->is_pressed(WirelessControllerDriver::Button::Y)) {
                 std::cout << "Setting control mode to DEFAULT." << std::endl;
-                result.Update(PolicyDriver->set_control_mode(go2::constants::HighLevelControlMode::DEFAULT));
                 master_gain = 0.0f;
+                result.Update(PolicyDriver->set_master_gain(master_gain));
+                result.Update(PolicyDriver->set_control_mode(go2::constants::HighLevelControlMode::DEFAULT));
                 ABSL_CHECK(result.ok()) << result.message();
             }
 
