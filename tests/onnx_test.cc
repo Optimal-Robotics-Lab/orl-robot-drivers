@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
     );
 
     std::filesystem::path model_path = 
-        runfiles->Rlocation("robot-drivers-bazel/onnx_models/dainty-silence-47.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/dainty-silence-47.onnx");
 
     // Initialize ONNX Runtime
     Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "ONNXRuntimeTest");

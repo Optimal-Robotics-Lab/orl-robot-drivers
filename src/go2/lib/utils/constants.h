@@ -89,7 +89,7 @@ namespace robot::go2::constants {
         // Hind Right:
         0.0, 0.9, -1.8,
         // Hind Left:
-        0.0, 0.9, -1.8
+        0.0, 0.9, -1.8,
         // Front Right:
         0.0, 0.0, 0.0,
         // Front Left:
@@ -145,6 +145,8 @@ namespace robot::go2::constants {
 
     template<typename T>
     using MotorVector = Eigen::Vector<T, num_joints>;
+
+    template<typename T>
     using ActionVector = Eigen::Vector<T, num_actions>;
 
 } // namespace robot::go2::constants

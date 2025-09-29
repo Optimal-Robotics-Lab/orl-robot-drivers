@@ -56,7 +56,7 @@ int main(int argc, char * argv[]) {
     );
 
     std::filesystem::path onnx_model_path = 
-        runfiles->Rlocation("orl-robot-drivers/onnx_models/young-sun-19.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/dainty-silence-47.onnx");
     
     absl::Status result;
     auto ControllerDriver = std::make_shared<WirelessControllerDriver>();
@@ -155,8 +155,8 @@ int main(int argc, char * argv[]) {
             }
             
             // Fast Control:
-            float x_scale = 1.5f;
-            float y_scale = 1.0f;
+            float x_scale = 2.0f;
+            float y_scale = 1.5f;
             float z_scale = 3.0f;
             
             // Slow Control:
