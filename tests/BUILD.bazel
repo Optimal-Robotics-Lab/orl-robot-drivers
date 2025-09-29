@@ -1,0 +1,13 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+
+cc_binary(
+    name = "onnx_test",
+    srcs = ["onnx_test.cc"],
+    data = ["//onnx_models:onnx_models"],
+    deps = [
+        "@onnxruntime-bazel//:onnxruntime",
+        "@rules_cc//cc/runfiles:runfiles",
+        "@bazel_tools//tools/cpp/runfiles",
+    ],
+    visibility = ["//visibility:public"],
+)
