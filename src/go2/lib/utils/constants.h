@@ -29,6 +29,7 @@ namespace robot::go2::constants {
 
     // Compile-time constant for the number of joints based on the Joint enum:
     constexpr std::size_t num_joints = static_cast<std::size_t>(Joint::COUNT);
+    constexpr std::size_t num_actions = 2 * num_joints;
 
     // Joint Name to Joint ID compile-time mapping:
     constexpr std::array<std::pair<Joint, std::string_view>, num_joints> joint_definitions = {{
@@ -79,6 +80,25 @@ namespace robot::go2::constants {
         // Hind Left:
         0.0, 0.9, -1.8
     };
+    
+    constexpr std::array<float, num_actions> default_setpoints = { 
+        // Front Right:
+        0.0, 0.9, -1.8,
+        // Front Left:
+        0.0, 0.9, -1.8,
+        // Hind Right:
+        0.0, 0.9, -1.8,
+        // Hind Left:
+        0.0, 0.9, -1.8
+        // Front Right:
+        0.0, 0.0, 0.0,
+        // Front Left:
+        0.0, 0.0, 0.0,
+        // Hind Right:
+        0.0, 0.0, 0.0,
+        // Hind Left:
+        0.0, 0.0, 0.0
+    };
 
     constexpr std::array<float, num_joints> q_lb = {
         -1.0472, -1.5708, -2.7227,
@@ -125,5 +145,6 @@ namespace robot::go2::constants {
 
     template<typename T>
     using MotorVector = Eigen::Vector<T, num_joints>;
+    using ActionVector = Eigen::Vector<T, num_actions>;
 
 } // namespace robot::go2::constants

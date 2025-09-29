@@ -271,7 +271,7 @@ absl::Status ONNXDriver::make_observation() {
     }
 
     // Previous Actions:
-    go2::constants::MotorVector<float> previous_actions = Eigen::Map<go2::constants::MotorVector<float>>(policy_output.data());
+    go2::constants::ActionVector<float> previous_actions = Eigen::Map<go2::constants::ActionVector<float>>(policy_output.data());
 
     // Projected Gravity:
     Eigen::Quaternion<float> quaternion(
@@ -301,14 +301,17 @@ absl::Status ONNXDriver::make_observation() {
 };
 
 Go2Command ONNXDriver::policy_command() {
-    go2::constants::MotorVector<float> actions = Eigen::Map<go2::constants::MotorVector<float>>(policy_output.data());
-    go2::constants::MotorVector<float> position_setpoints = default_position + master_gain * action_scale * actions;
+    go2::constants::ActionVector<float> actions = Eigen::Map<go2::constants::ActionVector<float>>(policy_output.data());
+    go2::constants::ActionVector<float> setpoints = default_setpoints + master_gain * action_scale * actions;
+    go2::constants::MotorVector<float> position_setpoints = setpoints.head<go2::constants::num_joints>();
+    go2::constants::MotorVector<float> velocity_setpoints = setpoints.tail<go2::constants::num_joints>();
 
     Go2Command command = go2::utilities::default_position_command();
 
     for (size_t i = 0; i < go2::constants::num_joints; ++i) {
         auto& motor_command = command.motor_cmd[i];
         motor_command.q = position_setpoints(i);
+        motor_command.dq = velocity_setpoints(i);
         motor_command.kp = kp[i];
         motor_command.kd = kd[i];
     }

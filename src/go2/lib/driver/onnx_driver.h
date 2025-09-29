@@ -223,6 +223,7 @@ class ONNXDriver : public rclcpp::Node {
         const float action_scale = 0.5f;
         float master_gain = 0.0f;
         const go2::constants::MotorVector<float> default_position = Eigen::Map<const go2::constants::MotorVector<float>>(go2::constants::default_position.data());
+        const go2::constants::ActionVector<float> default_setpoints = Eigen::Map<const go2::constants::ActionVector<float>>(go2::constants::default_setpoints.data());
         static constexpr std::array<float, go2::constants::num_joints> kp = go2::constants::default_kp;
         static constexpr std::array<float, go2::constants::num_joints> kd = go2::constants::default_kd;
 
