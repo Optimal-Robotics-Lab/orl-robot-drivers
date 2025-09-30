@@ -56,7 +56,7 @@ int main(int argc, char * argv[]) {
     );
 
     std::filesystem::path onnx_model_path = 
-        runfiles->Rlocation("orl-robot-drivers/onnx_models/dainty-silence-47.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/rural-forest-51.onnx");
     
     absl::Status result;
     auto ControllerDriver = std::make_shared<WirelessControllerDriver>();
@@ -80,8 +80,7 @@ int main(int argc, char * argv[]) {
     ABSL_CHECK(result.ok()) << result.message();
 
     // Initialize ONNX Driver setting Default HighLevelCommandMode and Command:
-    constexpr size_t control_rate_ms = 20;
-    constexpr std::chrono::microseconds control_rate_us(20000);
+    constexpr std::chrono::microseconds control_rate_us(10000);
     auto PolicyDriver = std::make_shared<ONNXDriver>(onnx_model_path, RobotDriver, control_rate_us);
     result.Update(PolicyDriver->initialize_thread());
 
@@ -177,8 +176,8 @@ int main(int argc, char * argv[]) {
         }
 
         auto elapsed_time = std::chrono::steady_clock::now() - start_time;
-        if (elapsed_time < std::chrono::milliseconds(control_rate_ms))
-            std::this_thread::sleep_for(std::chrono::milliseconds(control_rate_ms) - elapsed_time);
+        if (elapsed_time < control_rate_us)
+            std::this_thread::sleep_for(control_rate_us - elapsed_time);
         else
             std::cout << "Warning: Loop took longer than expected, skipping sleep." << std::endl;
     }

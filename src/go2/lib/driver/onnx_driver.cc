@@ -72,7 +72,7 @@ absl::Status ONNXDriver::initialize() {
 
     initialized = true;
     timer_ = create_wall_timer(
-        std::chrono::microseconds(control_rate_us),
+        control_rate,
         [this]() { this->policy_callback(); }
     );
 

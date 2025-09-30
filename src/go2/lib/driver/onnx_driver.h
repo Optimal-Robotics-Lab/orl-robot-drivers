@@ -7,6 +7,7 @@
 #include <thread>
 #include <cmath>
 #include <numeric>
+#include <chrono>
 
 #include "absl/status/status.h"
 #include "absl/log/absl_check.h"
@@ -39,7 +40,8 @@ class ONNXDriver : public rclcpp::Node {
          */
         ONNXDriver(
             std::filesystem::path onnx_model_path,
-            std::shared_ptr<Go2Driver> unitree_driver
+            std::shared_ptr<Go2Driver> unitree_driver,
+            std::chrono::microseconds control_rate
         );
 
         /**
@@ -220,6 +222,7 @@ class ONNXDriver : public rclcpp::Node {
         // Default Command Values
         go2::constants::HighLevelControlMode control_mode = go2::constants::HighLevelControlMode::DAMPING;
         int control_rate_us;
+        std::chrono::microseconds control_rate;
         const float action_scale = 0.5f;
         float master_gain = 0.0f;
         const go2::constants::MotorVector<float> default_position = Eigen::Map<const go2::constants::MotorVector<float>>(go2::constants::default_position.data());
