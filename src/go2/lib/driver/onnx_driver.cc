@@ -7,6 +7,7 @@
 #include <thread>
 #include <cmath>
 #include <numeric>
+#include <chrono>
 
 #include "absl/status/status.h"
 #include "absl/log/absl_check.h"
@@ -40,14 +41,15 @@ namespace {
 
 ONNXDriver::ONNXDriver(
     std::filesystem::path onnx_model_path,
-    std::shared_ptr<Go2Driver> unitree_driver
+    std::shared_ptr<Go2Driver> unitree_driver,
+    std::chrono::microseconds control_rate
 ) : 
     Node("policy_interface"),
     onnx_model_path(onnx_model_path),
-    unitree_driver(unitree_driver) {
+    unitree_driver(unitree_driver),
+    control_rate(control_rate) {
     // Set Control Rate:
-    declare_parameter("control_rate_us", 20000);
-    this->control_rate_us = this->get_parameter("control_rate_us").as_int();
+    this->control_rate_us = control_rate.count();
 
 }
 
