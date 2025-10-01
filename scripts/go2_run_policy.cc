@@ -56,7 +56,7 @@ int main(int argc, char * argv[]) {
     );
 
     std::filesystem::path onnx_model_path = 
-        runfiles->Rlocation("orl-robot-drivers/onnx_models/rural-forest-51.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/dainty-silence-47.onnx");
     
     absl::Status result;
     auto ControllerDriver = std::make_shared<WirelessControllerDriver>();
@@ -80,7 +80,7 @@ int main(int argc, char * argv[]) {
     ABSL_CHECK(result.ok()) << result.message();
 
     // Initialize ONNX Driver setting Default HighLevelCommandMode and Command:
-    constexpr std::chrono::microseconds control_rate_us(10000);
+    constexpr std::chrono::microseconds control_rate_us(20000);
     auto PolicyDriver = std::make_shared<ONNXDriver>(onnx_model_path, RobotDriver, control_rate_us);
     result.Update(PolicyDriver->initialize_thread());
 
