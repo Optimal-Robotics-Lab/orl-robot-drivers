@@ -56,7 +56,7 @@ int main(int argc, char * argv[]) {
     );
 
     std::filesystem::path onnx_model_path = 
-        runfiles->Rlocation("orl-robot-drivers/onnx_models/young-sun-19.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/sage-totem-44.onnx");
     
     absl::Status result;
     auto ControllerDriver = std::make_shared<WirelessControllerDriver>();
