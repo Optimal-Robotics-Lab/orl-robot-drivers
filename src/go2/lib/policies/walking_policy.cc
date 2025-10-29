@@ -30,15 +30,7 @@ using namespace robot;
 using namespace robot::constants;
 
 
-namespace {
-    template <typename T>
-    T vector_product(const std::vector<T>& v) {
-        return std::accumulate(v.begin(), v.end(), 1, std::multiplies<T>());
-    }
-}
-
-
-ONNXDriver::ONNXDriver(
+WalkingPolicy::WalkingPolicy(
     std::filesystem::path onnx_model_path,
     std::shared_ptr<Go2Driver> unitree_driver
 ) : 
@@ -51,12 +43,12 @@ ONNXDriver::ONNXDriver(
 
 }
 
-ONNXDriver::~ONNXDriver() {
+WalkingPolicy::~WalkingPolicy() {
     if (executor.is_spinning())
         executor.cancel();
 }
 
-absl::Status ONNXDriver::initialize() {
+absl::Status WalkingPolicy::initialize() {
     absl::Status result;
     // Initialize Robot Driver:
     if (!unitree_driver->is_initialized())
@@ -77,7 +69,7 @@ absl::Status ONNXDriver::initialize() {
     return result;
 };
 
-absl::Status ONNXDriver::initialize_session() {
+absl::Status WalkingPolicy::initialize_session() {
     Ort::SessionOptions session_options;
     session_options.SetIntraOpNumThreads(1);
     session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
@@ -120,7 +112,7 @@ absl::Status ONNXDriver::initialize_session() {
     return absl::OkStatus();
 };
 
-absl::Status ONNXDriver::initialize_thread() {
+absl::Status WalkingPolicy::initialize_thread() {
     absl::Status result;
 
     if (!unitree_driver->is_thread_initialized())
@@ -138,7 +130,7 @@ absl::Status ONNXDriver::initialize_thread() {
     return absl::OkStatus();
 };
 
-absl::Status ONNXDriver::stop_thread() {
+absl::Status WalkingPolicy::stop_thread() {
     if (!thread_initialized)
         return absl::FailedPreconditionError(
             "Policy Interface [stop_thread]: Node needs to be spinning."
@@ -151,67 +143,7 @@ absl::Status ONNXDriver::stop_thread() {
     return absl::OkStatus();
 };
 
-absl::Status ONNXDriver::set_control_mode(go2::constants::HighLevelControlMode mode) {
-    std::lock_guard<std::mutex> lock(mutex);
-    control_mode = mode;
-    return absl::OkStatus();
-};
-
-const go2::constants::HighLevelControlMode ONNXDriver::get_control_mode() {
-    std::lock_guard<std::mutex> lock(mutex);
-    return control_mode;
-};
-
-absl::Status ONNXDriver::set_command(const constants::Vector3<float>& new_command) {
-    std::lock_guard<std::mutex> lock(mutex);
-    command = new_command;
-    return absl::OkStatus();
-};
-
-absl::Status ONNXDriver::set_command(const std::array<float, 3>& new_command) {
-    std::lock_guard<std::mutex> lock(mutex);
-    command = Eigen::Map<const constants::Vector3<float>>(new_command.data());
-    return absl::OkStatus();
-};
-
-const constants::Vector3<float> ONNXDriver::get_command() {
-    std::lock_guard<std::mutex> lock(mutex);
-    return command;
-};
-
-absl::Status ONNXDriver::set_master_gain(float gain) {
-    std::lock_guard<std::mutex> lock(mutex);
-    master_gain = std::clamp(gain, 0.0f, 1.0f);
-    if (master_gain < 0.0f || master_gain > 1.0f) {
-        return absl::InvalidArgumentError("Policy Interface [set_master_gain]: Gain clamped between 0.0 and 1.0.");
-    }
-    return absl::OkStatus();
-};
-
-const float ONNXDriver::get_master_gain() {
-    std::lock_guard<std::mutex> lock(mutex);
-    return master_gain;
-};
-
-const std::vector<float> ONNXDriver::get_policy_output() {
-    std::lock_guard<std::mutex> lock(mutex);
-    return policy_output;
-};
-
-const Eigen::Vector<float, Eigen::Dynamic> ONNXDriver::get_observation() {
-    std::lock_guard<std::mutex> lock(mutex);
-    return observation;
-};
-
-const bool ONNXDriver::is_initialized() const {
-    return session_initialized;
-};
-
-const bool ONNXDriver::is_thread_initialized() const {
-    return thread_initialized;
-};
-
-absl::Status ONNXDriver::inference_policy() {
+absl::Status WalkingPolicy::inference_policy() {
     // Initialize Input and Output Tensors:
     Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(
         OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault
@@ -250,7 +182,7 @@ absl::Status ONNXDriver::inference_policy() {
     return absl::OkStatus();
 };
 
-absl::Status ONNXDriver::make_observation() {
+absl::Status WalkingPolicy::make_observation() {
     // Get Measurements:
     std::optional<Go2State> state = unitree_driver->get_state();
     if (!state)
@@ -300,7 +232,7 @@ absl::Status ONNXDriver::make_observation() {
     return absl::OkStatus();
 };
 
-Go2Command ONNXDriver::policy_command() {
+Go2Command WalkingPolicy::policy_command() {
     go2::constants::MotorVector<float> actions = Eigen::Map<go2::constants::MotorVector<float>>(policy_output.data());
     go2::constants::MotorVector<float> position_setpoints = default_position + master_gain * action_scale * actions;
 
@@ -316,7 +248,7 @@ Go2Command ONNXDriver::policy_command() {
     return command;
 };
 
-void ONNXDriver::policy_callback() {
+void WalkingPolicy::policy_callback() {
     std::lock_guard<std::mutex> lock(mutex);
 
     std::ignore = make_observation();
