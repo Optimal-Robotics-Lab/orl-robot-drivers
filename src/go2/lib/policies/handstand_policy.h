@@ -11,8 +11,6 @@
 #include "absl/status/status.h"
 #include "absl/log/absl_check.h"
 
-#include <onnxruntime_cxx_api.h>
-
 #include "Eigen/Dense"
 
 #include "rclcpp/rclcpp.hpp"
@@ -29,15 +27,21 @@ using namespace robot::constants;
 
 
 /**
- * @class WalkingPolicy
+ * @class HandstandPolicy
  * @brief A class to control the Unitree's Go2 robot using a Policy loaded from an ONNX file.
  */
-class WalkingPolicy : public rclcpp::Node {
+class HandstandPolicy : public rclcpp::Node {
     public:
+        /** Control commands for the handstand policy */
+        enum class ControlCommand : std::uint8_t {
+            Default,
+            Handstand,
+        };
+
         /**
          * @brief Construct a new Policy Interface object
          */
-        WalkingPolicy(
+        HandstandPolicy(
             std::filesystem::path onnx_model_path,
             std::shared_ptr<Go2Driver> unitree_driver
         );
@@ -45,13 +49,13 @@ class WalkingPolicy : public rclcpp::Node {
         /**
          * @brief Destroy the Policy Interface object, ensuring proper cleanup of resources.
          */
-        ~WalkingPolicy();
+        ~HandstandPolicy();
 
         // Disable copy and move semantics to prevent accidental duplication
-        WalkingPolicy(const WalkingPolicy&) = delete;
-        WalkingPolicy& operator=(const WalkingPolicy&) = delete;
-        WalkingPolicy(WalkingPolicy&&) = delete;
-        WalkingPolicy& operator=(WalkingPolicy&&) = delete;
+        HandstandPolicy(const HandstandPolicy&) = delete;
+        HandstandPolicy& operator=(const HandstandPolicy&) = delete;
+        HandstandPolicy(HandstandPolicy&&) = delete;
+        HandstandPolicy& operator=(HandstandPolicy&&) = delete;
 
         /**
          * @brief Initializes the Unitree Driver and ONNX Session.
@@ -98,32 +102,21 @@ class WalkingPolicy : public rclcpp::Node {
         };
 
         /**
-         * @brief Sets the command to be sent to the robot using an Eigen Vector.
-         * @param new_command The new command to send as a Eigen Vector.
+         * @brief Sets the command to be sent to the robot using the ControlCommand enum.
+         * @param new_command The new command to send.
          * @return absl::Status OkStatus on success, or an error if the command is invalid.
          */
-        absl::Status set_command(const Vector3<float>& new_command) {
+        absl::Status set_command(const HandstandPolicy::ControlCommand new_command) {
             std::lock_guard<std::mutex> lock(mutex);
             command = new_command;
-            return absl::OkStatus();
-        };
-        
-        /**
-         * @brief Sets the command to be sent to the robot using a std::array.
-         * @param new_command The new command to send as an array of floats.
-         * @return absl::Status OkStatus on success, or an error if the command is invalid.
-         */
-        absl::Status set_command(const std::array<float, 3>& new_command) {
-            std::lock_guard<std::mutex> lock(mutex);
-            command = Eigen::Map<const constants::Vector3<float>>(new_command.data());
             return absl::OkStatus();
         };
 
         /**
          * @brief Gets the current command being sent to the robot.
-         * @return Vector3<float> The current command.
+         * @return ControlCommand The current command.
          */
-        const Vector3<float> command() const {
+        const HandstandPolicy::ControlCommand command() const {
             std::lock_guard<std::mutex> lock(mutex);
             return command;
         };
@@ -205,11 +198,11 @@ class WalkingPolicy : public rclcpp::Node {
         void policy_callback();
 
         // Shared Variables
-        constants::Vector3<float> command = { 0.0, 0.0, 0.0 };
+        HandstandPolicy::ControlCommand command = HandstandPolicy::ControlCommand::Default;
 
         // ONNX Variables
         std::filesystem::path onnx_model_path;
-        std::shared_ptr<ONNXDriver> onnx_driver = std::make_shared<ONNXDriver>(onnx_model_path, "WalkingPolicySession");
+        std::shared_ptr<ONNXDriver> onnx_driver = std::make_shared<ONNXDriver>(onnx_model_path, "HandstandPolicySession");
         
         // Initialization Flags
         bool thread_initialized = false;
@@ -231,7 +224,7 @@ class WalkingPolicy : public rclcpp::Node {
         int control_rate_us;
         const float action_scale = 0.5f;
         float master_gain = 0.0f;
-        const go2::constants::MotorVector<float> default_position = Eigen::Map<const go2::constants::MotorVector<float>>(go2::constants::default_position.data());
+        go2::constants::MotorVector<float> control_point = Eigen::Map<const go2::constants::MotorVector<float>>(go2::constants::default_position.data());
         static constexpr std::array<float, go2::constants::num_joints> kp = go2::constants::default_kp;
         static constexpr std::array<float, go2::constants::num_joints> kd = go2::constants::default_kd;
 

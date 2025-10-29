@@ -1,3 +1,4 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@com_github_mvukov_rules_ros2//ros2:cc_defs.bzl", "ros2_cpp_library")
 
 ros2_cpp_library(
@@ -27,19 +28,13 @@ ros2_cpp_library(
     visibility = ["//visibility:public"],
 )
 
-ros2_cpp_library(
+cc_library(
     name = "onnx_driver",
     srcs = ["onnx_driver.cc"],
     hdrs = ["onnx_driver.h"],
     deps = [
-        ":go2_driver",
-        "//src/utils:constants",
-        "//src/go2/lib/utils:constants",
-        "//src/go2/lib/utils:utilities",
-        "//src/go2/msgs:unitree_go_msgs",
         "@eigen//:eigen",
         "@onnxruntime-bazel//:onnxruntime",
-        "@ros2_rclcpp//:rclcpp",
         "@abseil-cpp//absl/log:absl_check",
         "@abseil-cpp//absl/status:status",
     ],
