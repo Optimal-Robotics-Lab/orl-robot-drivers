@@ -7,6 +7,7 @@
 #include <thread>
 #include <cmath>
 #include <numeric>
+#include <string>
 
 #include "absl/status/status.h"
 #include "absl/log/absl_check.h"
@@ -69,7 +70,7 @@ class ONNXDriver {
          * @brief Gets the current observation.
          * @return Eigen::Vector<float, Eigen::Dynamic> The current observation.
          */
-        const Eigen::Vector<float, Eigen::Dynamic> observation() const {
+        const Eigen::Vector<float, Eigen::Dynamic> get_observation() const {
             return observation;
         }
 
@@ -77,7 +78,7 @@ class ONNXDriver {
          * @brief Gets the input of the policy.
          * @return std::vector<float> The current input of the policy.
          */
-        const std::vector<float> policy_input() const {
+        const std::vector<float> get_policy_input() const {
             return policy_input;
         }
 
@@ -85,7 +86,7 @@ class ONNXDriver {
          * @brief Gets the output of the policy.
          * @return std::vector<float> The current output of the policy.
          */
-        const std::vector<float> policy_output() const {
+        const std::vector<float> get_policy_output() const {
             return policy_output;
         }
 
@@ -93,7 +94,7 @@ class ONNXDriver {
          * @brief Gets the size of the input tensor.
          * @return size_t The size of the input tensor.
          */
-        const size_t input_tensor_size() const {
+        const size_t get_input_tensor_size() const {
             return input_tensor_size;
         };
 
@@ -101,7 +102,7 @@ class ONNXDriver {
          * @brief Gets the size of the output tensor.
          * @return size_t The size of the output tensor.
          */
-        const size_t output_tensor_size() const {
+        const size_t get_output_tensor_size() const {
             return output_tensor_size;
         };
         

@@ -7,6 +7,7 @@
 #include <thread>
 #include <cmath>
 #include <numeric>
+#include <string>
 
 #include "absl/status/status.h"
 #include "absl/log/absl_check.h"

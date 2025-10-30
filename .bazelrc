@@ -1,4 +1,12 @@
+try-import %workspace%/user.bazelrc
+
 common --enable_bzlmod
-build --repo_env=BAZEL_CXXOPTS="-std=c++23"
-build --action_env=ROS_DOMAIN_ID=42
+build --repository_cache=~/.cache/bazel-repo-cache
+build --disk_cache=~/.cache/bazel-disk-cache
+
+build --cxxopt="-include" --cxxopt="exception"
+build --cxxopt="-include" --cxxopt="ostream"
+
+common --incompatible_enable_proto_toolchain_resolution
+
 build:opt --copt=-O3

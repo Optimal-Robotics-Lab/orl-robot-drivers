@@ -17,10 +17,12 @@
 
 #include "rclcpp/rclcpp.hpp"
 
+#include "src/go2/lib/driver/onnx_driver.h"
+#include "src/go2/lib/driver/go2_driver.h"
+
 #include "src/utils/constants.h"
 #include "src/go2/lib/utils/constants.h"
 #include "src/go2/lib/utils/utilities.h"
-#include "src/go2/lib/driver/go2_driver.h"
 #include "src/go2/msgs/unitree_go_msgs.h"
 
 
@@ -31,17 +33,16 @@ using namespace robot::constants;
 
 
 WalkingPolicy::WalkingPolicy(
+    const rclcpp::NodeOptions& options,
     std::filesystem::path onnx_model_path,
     std::shared_ptr<Go2Driver> unitree_driver
 ) : 
-    Node("walking_policy_interface"),
+    Node("walking_policy_interface", options),
     onnx_model_path(onnx_model_path),
     unitree_driver(unitree_driver) {
-
     // Set Control Rate:
     declare_parameter("control_rate_us", 20000);
     this->control_rate_us = this->get_parameter("control_rate_us").as_int();
-
 }
 
 WalkingPolicy::~WalkingPolicy() {
@@ -126,7 +127,8 @@ absl::Status WalkingPolicy::make_observation() {
     }
 
     // Previous Actions:
-    go2::constants::MotorVector<float> previous_actions = Eigen::Map<go2::constants::MotorVector<float>>(policy_output.data());
+    const auto& policy_output = onnx_driver->get_policy_output();
+    go2::constants::MotorVector<float> previous_actions = Eigen::Map<const go2::constants::MotorVector<float>>(policy_output.data());
 
     // Projected Gravity:
     Eigen::Quaternion<float> quaternion(
@@ -138,7 +140,7 @@ absl::Status WalkingPolicy::make_observation() {
     
     // Set Observation:
     Eigen::Vector<float, Eigen::Dynamic> observation;
-    observation.resize(onnx_driver->input_tensor_size());
+    observation.resize(onnx_driver->get_input_tensor_size());
     observation << gyroscope_measurement,
                     projected_gravity,
                     joint_positions - default_position,
@@ -148,15 +150,17 @@ absl::Status WalkingPolicy::make_observation() {
 
     // Set Input Tensor:
     absl::Status status = onnx_driver->set_observation(observation);
-    if (!status.ok())
-        return absl::InternalError("[Walking Policy Interface] [make_observation]: Failed to set observation in ONNX driver: " + status.message());
+    if (!status.ok()) {
+        std::string message = std::string(status.message());
+        return absl::InternalError("[Walking Policy Interface] [make_observation]: Failed to set observation in ONNX driver: " + message);
+    }
 
     return absl::OkStatus();
 };
 
 Go2Command WalkingPolicy::policy_command() {
-    const auto& policy_output = onnx_driver->policy_output();
-    go2::constants::MotorVector<float> actions = Eigen::Map<go2::constants::MotorVector<float>>(policy_output.data());
+    const auto& policy_output = onnx_driver->get_policy_output();
+    go2::constants::MotorVector<float> actions = Eigen::Map<const go2::constants::MotorVector<float>>(policy_output.data());
     go2::constants::MotorVector<float> position_setpoints = default_position + master_gain * action_scale * actions;
 
     Go2Command command = go2::utilities::default_position_command();
@@ -177,14 +181,16 @@ void WalkingPolicy::policy_callback() {
 
     result.Update(this->make_observation());
     if (!result.ok()) {
-        RCLCPP_ERROR(this->get_logger(), "[Walking Policy Interface] Failed to make observation: %s", result.message().c_str());
+        std::string message = std::string(result.message());
+        RCLCPP_ERROR(this->get_logger(), "[Walking Policy Interface] Failed to make observation: %s", message.c_str());
         std::ignore = unitree_driver->update_command(go2::utilities::damping_command());
         return;
     }
 
     result.Update(onnx_driver->inference_policy());
     if (!result.ok()) {
-        RCLCPP_ERROR(this->get_logger(), "[Walking Policy Interface] Failed to run policy inference: %s", result.message().c_str());
+        std::string message = std::string(result.message());
+        RCLCPP_ERROR(this->get_logger(), "[Walking Policy Interface] Failed to run policy inference: %s", message.c_str());
         std::ignore = unitree_driver->update_command(go2::utilities::damping_command());
         return;
     }

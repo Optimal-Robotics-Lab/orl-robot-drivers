@@ -15,10 +15,13 @@
 
 #include "rclcpp/rclcpp.hpp"
 
+#include "src/go2/lib/driver/onnx_driver.h"
+#include "src/go2/lib/driver/go2_driver.h"
+
+
 #include "src/utils/constants.h"
 #include "src/go2/lib/utils/constants.h"
 #include "src/go2/lib/utils/utilities.h"
-#include "src/go2/lib/driver/go2_driver.h"
 #include "src/go2/msgs/unitree_go_msgs.h"
 
 
@@ -127,7 +130,8 @@ absl::Status HandstandPolicy::make_observation() {
     control_point = joint_positions;
 
     // Previous Actions:
-    go2::constants::MotorVector<float> previous_actions = Eigen::Map<go2::constants::MotorVector<float>>(policy_output.data());
+    const auto& policy_output = onnx_driver->get_policy_output();
+    go2::constants::MotorVector<float> previous_actions = Eigen::Map<const go2::constants::MotorVector<float>>(policy_output.data());
 
     // Projected Gravity:
     Eigen::Quaternion<float> quaternion(
@@ -139,7 +143,7 @@ absl::Status HandstandPolicy::make_observation() {
     
     // Set Observation:
     Eigen::Vector<float, Eigen::Dynamic> observation;
-    observation.resize(onnx_driver->input_tensor_size());
+    observation.resize(onnx_driver->get_input_tensor_size());
     observation << gyroscope_measurement,
                     projected_gravity,
                     joint_positions - default_position,
@@ -149,15 +153,17 @@ absl::Status HandstandPolicy::make_observation() {
 
     // Set Input Tensor:
     absl::Status status = onnx_driver->set_observation(observation);
-    if (!status.ok())
-        return absl::InternalError("[Handstand Policy Interface] [make_observation]: Failed to set observation in ONNX driver: " + status.message());
+    if (!status.ok()) {
+        std::string message = std::string(status.message());
+        return absl::InternalError("[Handstand Policy Interface] [make_observation]: Failed to set observation in ONNX driver: " + message);
+    }
 
     return absl::OkStatus();
 };
 
 Go2Command HandstandPolicy::policy_command() {
-    const auto& policy_output = onnx_driver->policy_output();
-    go2::constants::MotorVector<float> actions = Eigen::Map<go2::constants::MotorVector<float>>(policy_output.data());
+    const auto& policy_output = onnx_driver->get_policy_output();
+    go2::constants::MotorVector<float> actions = Eigen::Map<const go2::constants::MotorVector<float>>(policy_output.data());
     go2::constants::MotorVector<float> position_setpoints = control_point + master_gain * action_scale * actions;
 
     Go2Command command = go2::utilities::default_position_command();
@@ -178,7 +184,8 @@ void HandstandPolicy::policy_callback() {
 
     result.Update(this->make_observation());
     if (!result.ok()) {
-        RCLCPP_ERROR(this->get_logger(), "[Handstand Policy Interface] Failed to make observation: %s", result.message().c_str());
+        std::string message = std::string(result.message());
+        RCLCPP_ERROR(this->get_logger(), "[Handstand Policy Interface] Failed to make observation: %s", message.c_str());
         control_mode = go2::constants::HighLevelControlMode::DAMPING;
         std::ignore = unitree_driver->update_command(go2::utilities::damping_command());
         return;
@@ -186,7 +193,8 @@ void HandstandPolicy::policy_callback() {
 
     result.Update(onnx_driver->inference_policy());
     if (!result.ok()) {
-        RCLCPP_ERROR(this->get_logger(), "[Handstand Policy Interface] Failed to run policy inference: %s", result.message().c_str());
+        std::string message = std::string(result.message());
+        RCLCPP_ERROR(this->get_logger(), "[Handstand Policy Interface] Failed to run policy inference: %s", message.c_str());
         control_mode = go2::constants::HighLevelControlMode::DAMPING;
         std::ignore = unitree_driver->update_command(go2::utilities::damping_command());
         return;

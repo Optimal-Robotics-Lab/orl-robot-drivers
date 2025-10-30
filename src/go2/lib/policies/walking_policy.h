@@ -17,9 +17,11 @@
 
 #include "rclcpp/rclcpp.hpp"
 
+#include "src/go2/lib/driver/onnx_driver.h"
+#include "src/go2/lib/driver/go2_driver.h"
+
 #include "src/utils/constants.h"
 #include "src/go2/lib/utils/constants.h"
-#include "src/go2/lib/driver/go2_driver.h"
 #include "src/go2/msgs/unitree_go_msgs.h"
 
 using Go2State = unitree_go::msg::LowState;
@@ -38,6 +40,7 @@ class WalkingPolicy : public rclcpp::Node {
          * @brief Construct a new Policy Interface object
          */
         WalkingPolicy(
+            const rclcpp::NodeOptions& options,
             std::filesystem::path onnx_model_path,
             std::shared_ptr<Go2Driver> unitree_driver
         );
@@ -92,7 +95,7 @@ class WalkingPolicy : public rclcpp::Node {
          * @brief Gets the current control mode.
          * @return HighLevelControlMode The current control mode.
          */
-        const go2::constants::HighLevelControlMode control_mode() const {
+        const go2::constants::HighLevelControlMode get_control_mode() {
             std::lock_guard<std::mutex> lock(mutex);
             return control_mode;
         };
@@ -123,7 +126,7 @@ class WalkingPolicy : public rclcpp::Node {
          * @brief Gets the current command being sent to the robot.
          * @return Vector3<float> The current command.
          */
-        const Vector3<float> command() const {
+        const Vector3<float> get_command() {
             std::lock_guard<std::mutex> lock(mutex);
             return command;
         };
@@ -147,7 +150,7 @@ class WalkingPolicy : public rclcpp::Node {
          * @brief Gets the current master gain.
          * @return float The current master gain value.
          */
-        const float master_gain() const {
+        const float get_master_gain() {
             std::lock_guard<std::mutex> lock(mutex);
             return master_gain;
         }
@@ -156,18 +159,18 @@ class WalkingPolicy : public rclcpp::Node {
          * @brief Gets the output of the policy.
          * @return std::vector<float> The current output of the policy.
          */
-        const std::vector<float> policy_output() const {
+        const std::vector<float> get_policy_output() {
             std::lock_guard<std::mutex> lock(mutex);
-            return onnx_driver->policy_output();
+            return onnx_driver->get_policy_output();
         }
 
         /**
          * @brief Gets the current observation.
          * @return Eigen::Vector<float, Eigen::Dynamic> The current observation.
          */
-        const Eigen::Vector<float, Eigen::Dynamic> observation() const {
+        const Eigen::Vector<float, Eigen::Dynamic> get_observation() {
             std::lock_guard<std::mutex> lock(mutex);
-            return onnx_driver->observation();
+            return onnx_driver->get_observation();
         }
 
         /**
