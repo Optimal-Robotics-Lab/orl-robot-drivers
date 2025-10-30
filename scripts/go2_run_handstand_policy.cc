@@ -16,7 +16,7 @@
 
 #include "src/go2/lib/driver/wireless_controller_driver.h"
 #include "src/go2/lib/driver/go2_driver.h"
-#include "src/go2/lib/driver/onnx_driver.h"
+#include "src/go2/lib/policies/handstand_policy.h"
 
 #include "src/go2/lib/utils/constants.h"
 #include "src/go2/lib/utils/containers.h"
@@ -50,13 +50,16 @@ int main(int argc, char * argv[]) {
 
     rclcpp::init(argc, argv);
 
+    // Default Node Options:
+    rclcpp::NodeOptions options;
+
     std::string error;
     std::unique_ptr<Runfiles> runfiles(
         Runfiles::Create(argv[0], BAZEL_CURRENT_REPOSITORY, &error)
     );
 
     std::filesystem::path onnx_model_path = 
-        runfiles->Rlocation("orl-robot-drivers/onnx_models/sage-totem-44.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/solar-bush-51.onnx");
     
     absl::Status result;
     auto ControllerDriver = std::make_shared<WirelessControllerDriver>();
@@ -81,7 +84,7 @@ int main(int argc, char * argv[]) {
 
     // Initialize ONNX Driver setting Default HighLevelCommandMode and Command:
     constexpr size_t control_rate_ms = 20;
-    auto PolicyDriver = std::make_shared<ONNXDriver>(onnx_model_path, RobotDriver);
+    auto PolicyDriver = std::make_shared<HandstandPolicy>(options, onnx_model_path, RobotDriver);
     result.Update(PolicyDriver->initialize_thread());
 
     // Sleep for a while to allow the thread to spin up:
@@ -90,7 +93,6 @@ int main(int argc, char * argv[]) {
     // Set Inital Master Gain, Default HighLevelCommandMode, Command, and Initialize:
     result.Update(PolicyDriver->set_master_gain(0.0f));
     result.Update(PolicyDriver->set_control_mode(go2::constants::HighLevelControlMode::DEFAULT));
-    result.Update(PolicyDriver->set_command(constants::Vector3<float>(0.0, 0.0, 0.0)));
     result.Update(PolicyDriver->initialize());
     ABSL_CHECK(result.ok()) << result.message();
 
@@ -151,25 +153,6 @@ int main(int argc, char * argv[]) {
                 master_gain = std::clamp(master_gain, 0.0f, 1.0f);
                 std::cout << "Decreasing master gain to: " << master_gain << std::endl;
                 result.Update(PolicyDriver->set_master_gain(master_gain));
-                ABSL_CHECK(result.ok()) << result.message();
-            }
-            
-            // Fast Control:
-            float x_scale = 1.5f;
-            float y_scale = 1.0f;
-            float z_scale = 3.0f;
-            
-            // Slow Control:
-            // float x_scale = 1.5f;
-            // float y_scale = 1.0f;
-            // float z_scale = 1.2f;
-
-            float x = x_scale * ControllerDriver->get_left_stick_y();
-            float y = -1.0f * y_scale * ControllerDriver->get_left_stick_x();
-            float z = -1.0f * z_scale * ControllerDriver->get_right_stick_x();
-
-            if (PolicyDriver->get_control_mode() == go2::constants::HighLevelControlMode::POLICY) {
-                result.Update(PolicyDriver->set_command(constants::Vector3<float>(x, y, z)));
                 ABSL_CHECK(result.ok()) << result.message();
             }
 

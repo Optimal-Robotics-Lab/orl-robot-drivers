@@ -134,9 +134,6 @@ class ONNXDriver {
         bool session_initialized = false;
         bool initialized = false;
         
-        // Thread Variables
-        std::mutex mutex;
-        
         // Policy Variables
         size_t input_tensor_size;
         size_t output_tensor_size;

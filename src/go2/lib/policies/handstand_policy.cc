@@ -144,12 +144,21 @@ absl::Status HandstandPolicy::make_observation() {
     // Set Observation:
     Eigen::Vector<float, Eigen::Dynamic> observation;
     observation.resize(onnx_driver->get_input_tensor_size());
+    
+    // Command Version:
+    // observation << gyroscope_measurement,
+    //                 projected_gravity,
+    //                 joint_positions - default_position,
+    //                 joint_velocities,
+    //                 previous_actions,
+    //                 static_cast<float>(command);
+
+    // No Command Version:
     observation << gyroscope_measurement,
                     projected_gravity,
                     joint_positions - default_position,
                     joint_velocities,
-                    previous_actions,
-                    static_cast<float>(command);
+                    previous_actions;
 
     // Set Input Tensor:
     absl::Status status = onnx_driver->set_observation(observation);

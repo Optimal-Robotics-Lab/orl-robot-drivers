@@ -158,14 +158,14 @@ int main(int argc, char * argv[]) {
             }
             
             // Fast Control:
-            float x_scale = 1.5f;
-            float y_scale = 1.0f;
-            float z_scale = 3.0f;
-            
-            // Slow Control:
             // float x_scale = 1.5f;
             // float y_scale = 1.0f;
-            // float z_scale = 1.2f;
+            // float z_scale = 3.0f;
+            
+            // Slow Control:
+            float x_scale = 1.5f;
+            float y_scale = 1.0f;
+            float z_scale = 1.2f;
 
             float x = x_scale * ControllerDriver->get_left_stick_y();
             float y = -1.0f * y_scale * ControllerDriver->get_left_stick_x();

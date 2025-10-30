@@ -146,7 +146,7 @@ absl::Status WalkingPolicy::make_observation() {
                     joint_positions - default_position,
                     joint_velocities,
                     previous_actions,
-                    command;
+                    commands;
 
     // Set Input Tensor:
     absl::Status status = onnx_driver->set_observation(observation);
