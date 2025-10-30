@@ -220,6 +220,8 @@ void HandstandPolicy::policy_callback() {
         case go2::constants::HighLevelControlMode::DISABLE:
             command = go2::utilities::disable_command();
             break;
+        case go2::constants::HighLevelControlMode::INACTIVE:
+            return;
     }
 
     // Send Motor Command:

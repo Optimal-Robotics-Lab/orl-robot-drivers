@@ -215,8 +215,11 @@ void WalkingPolicy::policy_callback() {
         case go2::constants::HighLevelControlMode::DISABLE:
             command = go2::utilities::disable_command();
             break;
+        case go2::constants::HighLevelControlMode::INACTIVE:
+            return;
     }
 
     // Send Motor Command:
     std::ignore = unitree_driver->update_command(command);
+
 };

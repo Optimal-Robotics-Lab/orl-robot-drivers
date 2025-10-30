@@ -66,6 +66,7 @@ namespace robot::go2::constants {
         DAMPING,
         POLICY,
         DISABLE,
+        INACTIVE,
     };
 
     // Default values for the Go2 robot:

@@ -31,7 +31,7 @@ ros2_cpp_binary(
         "//src/go2/lib/utils:containers",
         "//src/go2/lib/utils:utilities",
         "//src/go2/lib/driver:wireless_controller_driver",
-        "//src/go2/lib/driver:onnx_driver",
+        "//src/go2/lib/policies:walking_policy",
         "//src/go2/lib/driver:go2_driver",
         "//src/go2/msgs:unitree_go_msgs",
         "@eigen//:eigen",
