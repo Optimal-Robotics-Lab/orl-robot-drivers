@@ -90,11 +90,21 @@ absl::Status ONNXDriver::initialize_session() {
 };
 
 absl::Status ONNXDriver::set_observation(const Eigen::Vector<float, Eigen::Dynamic>& new_observation) {
-    if (new_observation.size() != observation.size()) {
+    // Update Observation:
+    if (new_observation.size() != observation.size())
         return absl::InvalidArgumentError("[ONNX Driver] [set_observation]: Observation size mismatch");
-    }
 
     observation = new_observation;
+
+    // Update Policy Input:
+    if (observation.size() != policy_input.size())
+        return absl::InternalError("[ONNX Driver] [set_observation]: Policy input size mismatch");
+
+    std::copy(
+        observation.data(), 
+        observation.data() + observation.size(), 
+        policy_input.data()
+    );
 
     return absl::OkStatus();
 };

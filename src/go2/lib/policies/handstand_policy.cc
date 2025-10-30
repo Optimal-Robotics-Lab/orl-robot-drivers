@@ -32,17 +32,16 @@ using namespace robot::constants;
 
 
 HandstandPolicy::HandstandPolicy(
+    const rclcpp::NodeOptions& options,
     std::filesystem::path onnx_model_path,
     std::shared_ptr<Go2Driver> unitree_driver
 ) : 
-    Node("handstand_policy_interface"),
+    Node("handstand_policy_interface", options),
     onnx_model_path(onnx_model_path),
     unitree_driver(unitree_driver) {
-
     // Set Control Rate:
     declare_parameter("control_rate_us", 20000);
     this->control_rate_us = this->get_parameter("control_rate_us").as_int();
-
 }
 
 HandstandPolicy::~HandstandPolicy() {

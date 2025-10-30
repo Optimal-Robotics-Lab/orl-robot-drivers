@@ -45,6 +45,7 @@ class HandstandPolicy : public rclcpp::Node {
          * @brief Construct a new Policy Interface object
          */
         HandstandPolicy(
+            const rclcpp::NodeOptions& options,
             std::filesystem::path onnx_model_path,
             std::shared_ptr<Go2Driver> unitree_driver
         );
