@@ -1,0 +1,33 @@
+load("@com_github_mvukov_rules_ros2//ros2:bag.bzl", "ros2_bag")
+load("@com_github_mvukov_rules_ros2//ros2:py_defs.bzl", "ros2_py_binary")
+
+ros2_bag(
+    name = "record",
+    args = [
+        "record",
+        "/lowcmd",
+        "/lowstate",
+        "-o",
+        "robot_bag",
+    ],
+    idl_deps = [
+        "//src/go2/msgs:unitree_api",
+        "//src/go2/msgs:unitree_go",
+    ],
+)
+
+ros2_py_binary(
+    name = "parse_bag",
+    srcs = ["parse_bag.py"],
+    main = "parse_bag.py",
+    data = [
+        "//tools/bags:bag_data",
+    ],
+    deps = [
+        "//src/go2/msgs:py_unitree_go_msgs",
+        "@ros2_rosbag2//:rosbag2_py",
+        "@ros2_rosbag2//:rosbag2_cpp",
+        "@ros2_rclpy//:rclpy",
+        "@rules_python//python/runfiles",
+    ],
+)

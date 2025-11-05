@@ -1,0 +1,8 @@
+filegroup(
+    name = "bag_data",
+    srcs = glob(
+        ["**"],
+        allow_empty = True,
+    ),
+    visibility = ["//visibility:public"],
+)
