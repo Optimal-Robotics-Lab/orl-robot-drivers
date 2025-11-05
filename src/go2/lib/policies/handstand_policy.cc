@@ -126,7 +126,7 @@ absl::Status HandstandPolicy::make_observation() {
     }
 
     // Update Control Point with Current Joint Positions:
-    control_point = joint_positions;
+    // control_point = joint_positions;
 
     // Previous Actions:
     const auto& policy_output = onnx_driver->get_policy_output();
@@ -173,6 +173,7 @@ Go2Command HandstandPolicy::policy_command() {
     const auto& policy_output = onnx_driver->get_policy_output();
     go2::constants::MotorVector<float> actions = Eigen::Map<const go2::constants::MotorVector<float>>(policy_output.data());
     go2::constants::MotorVector<float> position_setpoints = control_point + master_gain * action_scale * actions;
+    control_point = position_setpoints;
 
     Go2Command command = go2::utilities::default_position_command();
 
