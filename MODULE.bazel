@@ -20,6 +20,9 @@ bazel_dep(name = "abseil-cpp", version = "20250512.0")
 # Eigen:
 bazel_dep(name = "eigen", version = "4.0.0-20241125.bcr.2")
 
+bazel_dep(name = "sqlite3", version = "3.50.4")
+bazel_dep(name = "yaml-cpp", version = "0.8.0")
+
 # unitree_ros2
 bazel_dep(name = "unitree_ros2")
 git_override(

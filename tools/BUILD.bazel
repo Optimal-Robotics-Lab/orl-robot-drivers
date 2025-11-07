@@ -36,9 +36,12 @@ ros2_cpp_binary(
     srcs = ["parse_bag.cc"],
     data = ["//tools/bags:bag_data"],
     deps = [
+        "//src/go2/lib/utils:constants",
         "//src/go2/msgs:unitree_go_msgs",
         "@ros2_rclcpp//:rclcpp",
+        "@ros2_rcutils//:rcutils",
         "@ros2_rosbag2//:rosbag2_cpp",
+        "@ros2_rosbag2//:rosbag2_storage",
         "@rules_cc//cc/runfiles:runfiles",
         "@bazel_tools//tools/cpp/runfiles",
     ],

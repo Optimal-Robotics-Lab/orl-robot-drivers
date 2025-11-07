@@ -1,9 +1,11 @@
 #include <iostream>
+#include <fstream>
 #include <filesystem>
 #include <string>
 #include <memory>
 #include <vector>
 #include <map>
+#include <cstdlib>
 
 #include "rules_cc/cc/runfiles/runfiles.h"
 
@@ -13,9 +15,10 @@
 #include "rosbag2_cpp/converter_options.hpp"
 #include "rclcpp/serialization.hpp"
 #include "rclcpp/serialized_message.hpp"
+#include "rcutils/time.h"
 
+#include "src/go2/lib/utils/constants.h"
 #include "src/go2/msgs/unitree_go_msgs.h"
-
 
 using rules_cc::cc::runfiles::Runfiles;
 
@@ -40,7 +43,7 @@ int main(int argc, char** argv) {
     std::cout << "Successfully found manifest at: " << manifest_path << std::endl;
     std::cout << "Successfully derived bag directory uri: " << directory << std::endl;
 
-    // --- 2. Set up the bag reader ---
+
     rosbag2_storage::StorageOptions storage_options;
     storage_options.uri = directory;
     storage_options.storage_id = "sqlite3";
@@ -75,8 +78,7 @@ int main(int argc, char** argv) {
     }
 
     struct MessageData {
-        std::uint64_t recieved_timestamp_ns{ 0 };
-        std::uint64_t send_timestamp_ns{ 0 };
+        rcutils_time_point_value_t time_stamp_ns{ 0 };
         std::array<float, robot::go2::constants::num_joints> positions{};
         std::array<float, robot::go2::constants::num_joints> velocities{};
         std::array<float, robot::go2::constants::num_joints> torques{};
@@ -95,8 +97,7 @@ int main(int argc, char** argv) {
         const std::string& type_name = topic_to_type[topic_name];
 
         if (type_name == "unitree_go/msg/LowState") {
-            auto recieved_timestamp_ns = serialized_message->recv_timestamp;
-            auto send_timestamp_ns = serialized_message->send_timestamp;
+            auto time_stamp_ns = serialized_message->time_stamp;
 
             unitree_go::msg::LowState msg;
             lowstate_serializer.deserialize_message(&extracted_message, &msg);
@@ -108,8 +109,7 @@ int main(int argc, char** argv) {
             }
 
             auto data = MessageData{
-                .recieved_timestamp_ns = recieved_timestamp_ns,
-                .send_timestamp_ns = send_timestamp_ns,
+                .time_stamp_ns = time_stamp_ns,
                 .positions = positions,
                 .velocities = velocities,
                 .torques = torques
@@ -119,8 +119,7 @@ int main(int argc, char** argv) {
 
         } 
         else if (type_name == "unitree_go/msg/LowCmd") {
-            auto recieved_timestamp_ns = serialized_message->recv_timestamp;
-            auto send_timestamp_ns = serialized_message->send_timestamp;
+            auto time_stamp_ns = serialized_message->time_stamp;
 
             unitree_go::msg::LowCmd msg;
             lowcmd_serializer.deserialize_message(&extracted_message, &msg);
@@ -132,8 +131,7 @@ int main(int argc, char** argv) {
             }
 
             auto data = MessageData{
-                .recieved_timestamp_ns = recieved_timestamp_ns,
-                .send_timestamp_ns = send_timestamp_ns,
+                .time_stamp_ns = time_stamp_ns,
                 .positions = positions,
                 .velocities = velocities,
                 .torques = torques
@@ -145,7 +143,7 @@ int main(int argc, char** argv) {
     
     std::ofstream state_file("go2_state_history.csv");
     for (const auto& entry : state_history) {
-        state_file << entry.send_timestamp_ns << "," << entry.recieved_timestamp_ns;
+        state_file << entry.time_stamp_ns;
         for (const auto& position : entry.positions)
             state_file << "," << position;
 
@@ -161,7 +159,7 @@ int main(int argc, char** argv) {
 
     std::ofstream command_file("go2_command_history.csv");
     for (const auto& entry : command_history) {
-        command_file << entry.send_timestamp_ns << "," << entry.recieved_timestamp_ns;
+        command_file << entry.time_stamp_ns;
         for (const auto& position : entry.positions)
             command_file << "," << position;
 
