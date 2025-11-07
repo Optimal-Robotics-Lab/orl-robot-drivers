@@ -107,6 +107,22 @@ use_repo(
     "rules_ros2_config_clang",
 )
 
+bazel_dep(name = "toolchains_llvm", version = "1.5.0", dev_dependency = True)
+
+llvm = use_extension("@toolchains_llvm//toolchain/extensions:llvm.bzl", "llvm")
+
+LLVM_VERSIONS = {
+    "": "21.1.0",
+}
+
+llvm.toolchain(
+    name = "llvm_toolchain",
+    cxx_standard = {"": "c++23"},
+    llvm_versions = LLVM_VERSIONS,
+)
+
+use_repo(llvm, "llvm_toolchain", "llvm_toolchain_llvm")
+
 # Hedron's Compile Commands Extractor for Bazel
 # https://github.com/hedronvision/bazel-compile-commands-extractor
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
