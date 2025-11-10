@@ -293,3 +293,11 @@ compile_commands.json
 
 # Local Bazel Configuration:
 .bazelrc.user
+
+# Data / Data Basefiles:
+*.db
+*.db3
+*.sqlite
+*.sqlite3
+*.csv
+*.yaml
