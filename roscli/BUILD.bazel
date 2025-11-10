@@ -17,36 +17,26 @@ py_library(
 )
 
 py_binary(
-    name = "ros2_node",
-    srcs = ["ros2_node.py"],
+    name = "node",
+    srcs = ["node.py"],
     visibility = ["//visibility:public"],
     deps = [
         ":ros2_cmd",
         "@ros2cli//:ros2node",
+        "//src/go2/msgs:py_unitree_api_msgs",
+        "//src/go2/msgs:py_unitree_go_msgs",
     ],
 )
 
 py_binary(
-    name = "ros2_topic",
-    srcs = ["ros2_topic.py"],
+    name = "topic",
+    srcs = ["topic.py"],
     visibility = ["//visibility:public"],
     deps = [
         ":ros2_cmd",
         "@ros2cli//:ros2topic",
+        "//src/go2/msgs:py_unitree_api_msgs",
+        "//src/go2/msgs:py_unitree_go_msgs",
     ],
 )
 
-ros2_bag(
-    name = "record",
-    args = [
-        "record",
-        "/lowcmd",
-        "/lowstate",
-        "-o",
-        "state_command_bag",
-    ],
-    idl_deps = [
-        "//src/go2/msgs:unitree_api",
-        "//src/go2/msgs:unitree_go",
-    ],
-)

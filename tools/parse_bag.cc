@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
                 .torques = torques
             };
             
-            state_history.push_back(data);
+            command_history.push_back(data);
         }
     }
     
