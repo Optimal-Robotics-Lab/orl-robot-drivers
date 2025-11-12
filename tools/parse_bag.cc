@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
         for (const auto& torque : entry.torques)
             state_file << "," << torque;
 
-        state_file << "\n";
+        state_file << ",\n";
     }
     state_file.close();
 
@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
         for (const auto& torque : entry.torques)
             command_file << "," << torque;
 
-        command_file << "\n";
+        command_file << ",\n";
     }
     command_file.close();
 
