@@ -7,6 +7,9 @@
 #include <map>
 #include <cstdlib>
 
+#include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
+
 #include "rules_cc/cc/runfiles/runfiles.h"
 
 #include "rosbag2_cpp/reader.hpp"
@@ -22,8 +25,14 @@
 
 using rules_cc::cc::runfiles::Runfiles;
 
+ABSL_FLAG(
+    std::string, directory_name, "", "ROS2 bag directory name under orl-robot-drivers/tools/bags/ to process."
+);
+
 
 int main(int argc, char** argv) {
+    absl::ParseCommandLine(argc, argv);
+
     std::string error;
     std::unique_ptr<Runfiles> runfiles(Runfiles::Create(argv[0], &error));
     if (runfiles == nullptr) {
@@ -31,7 +40,14 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::string manifest_runfile_path = "orl-robot-drivers/tools/bags/BUILD.bazel";
+    std::string bag_directory = absl::GetFlag(FLAGS_directory_name);
+    if (bag_directory.empty()) {
+        std::cerr << "Error: The --directory_name flag is required." << std::endl;
+        std::cerr << "Usage: " << argv[0] << " --directory_name=<your-directory-name>" << std::endl;
+        return 1;
+    }
+
+    std::string manifest_runfile_path = "orl-robot-drivers/tools/bags/" + bag_directory + "/metadata.yaml";
     std::filesystem::path manifest_path = runfiles->Rlocation(manifest_runfile_path);
     if (!std::filesystem::exists(manifest_path)) {
         std::cerr << "Error: Could not find bag manifest file in runfiles." << std::endl;
