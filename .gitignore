@@ -294,6 +294,9 @@ compile_commands.json
 # Local Bazel Configuration:
 .bazelrc.user
 
+# Local Configuration Files:
+.user/
+
 # Data / Data Basefiles:
 *.db
 *.db3
