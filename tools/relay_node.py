@@ -38,6 +38,7 @@ class Relay(Node):
         )
 
     def state_callback(self, msg):
+        self.get_logger().info(f'Received LowState! Relaying...')
         self.pub_state.publish(msg)
 
     def cmd_callback(self, msg):
