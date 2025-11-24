@@ -93,15 +93,23 @@ int main(int argc, char** argv) {
         topic_to_type[topic_meta.name] = topic_meta.type;
     }
 
-    struct MessageData {
+    struct MotorMessageData {
         rcutils_time_point_value_t time_stamp_ns{ 0 };
         std::array<float, robot::go2::constants::num_joints> positions{};
         std::array<float, robot::go2::constants::num_joints> velocities{};
         std::array<float, robot::go2::constants::num_joints> torques{};
     };
 
-    std::vector<MessageData> state_history;
-    std::vector<MessageData> command_history;
+    struct IMUMessageData {
+        rcutils_time_point_value_t time_stamp_ns{ 0 };
+        std::array<float, 4> quaternion{};
+        std::array<float, 3> gyroscope{};
+        std::array<float, 3> accelerometer{};
+    };
+
+    std::vector<MotorMessageData> state_history;
+    std::vector<MotorMessageData> command_history;
+    std::vector<IMUMessageData> imu_history;
 
     while (reader.has_next()) {
         auto serialized_message = reader.read_next();
@@ -124,14 +132,35 @@ int main(int argc, char** argv) {
                 torques[i] = msg.motor_state[i].tau_est;
             }
 
-            auto data = MessageData{
+            // IMU State:
+            std::array<float, 4> quaternion{};
+            std::array<float, 3> gyroscope{};
+            std::array<float, 3> accelerometer{};
+
+            for (size_t i = 0; i < 4; ++i)
+                quaternion[i] = msg.imu_state.quaternion[i];
+
+            for (size_t i = 0; i < 3; ++i) {
+                gyroscope[i] = msg.imu_state.gyroscope[i];
+                accelerometer[i] = msg.imu_state.accelerometer[i];
+            }
+
+            auto state_data = MotorMessageData{
                 .time_stamp_ns = time_stamp_ns,
                 .positions = positions,
                 .velocities = velocities,
                 .torques = torques
             };
 
-            state_history.push_back(data);
+            auto imu_data = IMUMessageData{
+                .time_stamp_ns = time_stamp_ns,
+                .quaternion = quaternion,
+                .gyroscope = gyroscope,
+                .accelerometer = accelerometer
+            };
+
+            state_history.push_back(state_data);
+            imu_history.push_back(imu_data);
 
         } 
         else if (type_name == "unitree_go/msg/LowCmd") {
@@ -146,14 +175,14 @@ int main(int argc, char** argv) {
                 torques[i] = msg.motor_cmd[i].tau;
             }
 
-            auto data = MessageData{
+            auto command_data = MotorMessageData{
                 .time_stamp_ns = time_stamp_ns,
                 .positions = positions,
                 .velocities = velocities,
                 .torques = torques
             };
-            
-            command_history.push_back(data);
+
+            command_history.push_back(command_data);
         }
     }
     
@@ -173,7 +202,23 @@ int main(int argc, char** argv) {
     }
     state_file.close();
 
-    std::ofstream command_file("command_history.csv");
+    std::ofstream imu_file("go2_imu_history.csv");
+    for (const auto& entry : imu_history) {
+        imu_file << entry.time_stamp_ns;
+        for (const auto& q : entry.quaternion)
+            imu_file << "," << q;
+
+        for (const auto& g : entry.gyroscope)
+            imu_file << "," << g;
+
+        for (const auto& a : entry.accelerometer)
+            imu_file << "," << a;
+
+        imu_file << "\n";
+    }
+    imu_file.close();
+
+    std::ofstream command_file("go2_command_history.csv");
     for (const auto& entry : command_history) {
         command_file << entry.time_stamp_ns;
         for (const auto& position : entry.positions)
