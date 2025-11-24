@@ -1,5 +1,7 @@
 load("@com_github_mvukov_rules_ros2//ros2:bag.bzl", "ros2_bag")
 load("@com_github_mvukov_rules_ros2//ros2:cc_defs.bzl", "ros2_cpp_binary")
+load("@rules_python//python:defs.bzl", "py_binary")
+
 
 ros2_bag(
     name = "record",
@@ -48,4 +50,15 @@ ros2_cpp_binary(
         "@bazel_tools//tools/cpp/runfiles",
     ],
     visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "relay_node",
+    srcs = ["relay_node.py"],
+    deps = [
+        "//src/go2/msgs:py_unitree_api_msgs",
+        "//src/go2/msgs:py_unitree_go_msgs",
+        "@ros2_common_interfaces//:py_std_msgs",
+        "@ros2_rclpy//:rclpy",
+    ],
 )

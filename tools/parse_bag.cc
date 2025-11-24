@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
         }
     }
     
-    std::ofstream state_file("go2_state_history.csv");
+    std::ofstream state_file("state_history.csv");
     for (const auto& entry : state_history) {
         state_file << entry.time_stamp_ns;
         for (const auto& position : entry.positions)
@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
     }
     state_file.close();
 
-    std::ofstream command_file("go2_command_history.csv");
+    std::ofstream command_file("command_history.csv");
     for (const auto& entry : command_history) {
         command_file << entry.time_stamp_ns;
         for (const auto& position : entry.positions)
@@ -185,7 +185,7 @@ int main(int argc, char** argv) {
         for (const auto& torque : entry.torques)
             command_file << "," << torque;
 
-        command_file << ",\n";
+        command_file << "\n";
     }
     command_file.close();
 
