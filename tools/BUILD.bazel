@@ -7,14 +7,16 @@ ros2_bag(
     name = "record",
     args = [
         "record",
-        "/lowcmd",
-        "/lowstate",
+        "/relay/lowcmd",
+        "/relay/lowstate",
+        "/vicon/UnitreeGo2/UnitreeGo2",
         "-o",
         "robot_bag",
     ],
     idl_deps = [
         "//src/go2/msgs:unitree_api",
         "//src/go2/msgs:unitree_go",
+        "//src/vicon/msgs:vicon_receiver",
     ],
 )
 
@@ -36,10 +38,11 @@ ros2_bag(
 ros2_cpp_binary(
     name = "parse_bag",
     srcs = ["parse_bag.cc"],
-    data = ["//tools/bags:test_3"],
+    data = ["//tools/bags:test_1"],
     deps = [
         "//src/go2/lib/utils:constants",
         "//src/go2/msgs:unitree_go_msgs",
+        "//src/vicon/msgs:vicon_receiver_msgs",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
         "@ros2_rclcpp//:rclcpp",

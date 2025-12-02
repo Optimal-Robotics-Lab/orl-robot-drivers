@@ -22,6 +22,7 @@
 
 #include "src/go2/lib/utils/constants.h"
 #include "src/go2/msgs/unitree_go_msgs.h"
+#include "src/vicon/msgs/vicon_receiver_msgs.h"
 
 using rules_cc::cc::runfiles::Runfiles;
 
@@ -80,6 +81,7 @@ int main(int argc, char** argv) {
 
     rclcpp::Serialization<unitree_go::msg::LowState> lowstate_serializer;
     rclcpp::Serialization<unitree_go::msg::LowCmd> lowcmd_serializer;
+    rclcpp::Serialization<vicon_receiver::msg::Position> vicon_position_serializer;
 
     // Bag Metadata:
     const auto& metadata = reader.get_metadata();
@@ -107,9 +109,16 @@ int main(int argc, char** argv) {
         std::array<float, 3> accelerometer{};
     };
 
+    struct ViconMessageData {
+        rcutils_time_point_value_t time_stamp_ns{ 0 };
+        std::array<float, 3> position{};
+        std::array<float, 4> orientation{};
+    };
+
     std::vector<MotorMessageData> state_history;
     std::vector<MotorMessageData> command_history;
     std::vector<IMUMessageData> imu_history;
+    std::vector<ViconMessageData> vicon_history;
 
     while (reader.has_next()) {
         auto serialized_message = reader.read_next();
@@ -184,6 +193,29 @@ int main(int argc, char** argv) {
 
             command_history.push_back(command_data);
         }
+        else if (type_name == "vicon_receiver/msg/Position") {
+            // Vicon data parsing can be added here if needed in the future.
+            auto time_stamp_ns = serialized_message->time_stamp;
+            vicon_receiver::msg::Position msg;
+            vicon_position_serializer.deserialize_message(&extracted_message, &msg);
+            std::array<float, 3> position{};
+            std::array<float, 4> orientation{};
+            position[0] = msg.x_trans;
+            position[1] = msg.y_trans;
+            position[2] = msg.z_trans;
+            orientation[0] = msg.w;
+            orientation[1] = msg.x_rot;
+            orientation[2] = msg.y_rot;
+            orientation[3] = msg.z_rot;
+            
+            auto vicon_data = ViconMessageData{
+                .time_stamp_ns = time_stamp_ns,
+                .position = position,
+                .orientation = orientation
+            };
+
+            vicon_history.push_back(vicon_data);
+        }
     }
     
     std::ofstream state_file("state_history.csv");
@@ -202,7 +234,7 @@ int main(int argc, char** argv) {
     }
     state_file.close();
 
-    std::ofstream imu_file("go2_imu_history.csv");
+    std::ofstream imu_file("imu_history.csv");
     for (const auto& entry : imu_history) {
         imu_file << entry.time_stamp_ns;
         for (const auto& q : entry.quaternion)
@@ -218,7 +250,7 @@ int main(int argc, char** argv) {
     }
     imu_file.close();
 
-    std::ofstream command_file("go2_command_history.csv");
+    std::ofstream command_file("command_history.csv");
     for (const auto& entry : command_history) {
         command_file << entry.time_stamp_ns;
         for (const auto& position : entry.positions)
@@ -233,6 +265,19 @@ int main(int argc, char** argv) {
         command_file << "\n";
     }
     command_file.close();
+
+    std::ofstream vicon_file("vicon_history.csv");
+    for (const auto& entry : vicon_history) {
+        vicon_file << entry.time_stamp_ns;
+        for (const auto& pos : entry.position)
+            vicon_file << "," << pos;
+
+        for (const auto& ori : entry.orientation)
+            vicon_file << "," << ori;
+
+        vicon_file << "\n";
+    }
+    vicon_file.close();
 
     return 0;
 }

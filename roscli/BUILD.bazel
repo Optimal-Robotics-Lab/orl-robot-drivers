@@ -25,6 +25,7 @@ py_binary(
         "@ros2cli//:ros2node",
         "//src/go2/msgs:py_unitree_api_msgs",
         "//src/go2/msgs:py_unitree_go_msgs",
+        "//src/vicon/msgs:py_vicon_receiver_msgs",
     ],
 )
 
@@ -37,6 +38,7 @@ py_binary(
         "@ros2cli//:ros2topic",
         "//src/go2/msgs:py_unitree_api_msgs",
         "//src/go2/msgs:py_unitree_go_msgs",
+        "//src/vicon/msgs:py_vicon_receiver_msgs",
     ],
 )
 
