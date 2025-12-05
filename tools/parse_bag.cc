@@ -202,11 +202,12 @@ int main(int argc, char** argv) {
             command_history.push_back(command_data);
         }
         else if (type_name == "vicon_receiver/msg/Position") {
-            auto time_stamp_ns = serialized_message->time_stamp;
+            auto recieved_time_stamp_ns = serialized_message->time_stamp;
             vicon_receiver::msg::Position msg;
             vicon_position_serializer.deserialize_message(&extracted_message, &msg);
             std::array<float, 3> position{};
             std::array<float, 4> orientation{};
+            auto time_stamp_ns = rclcpp::Time(msg.header.stamp).nanoseconds();
             position[0] = msg.x_trans;
             position[1] = msg.y_trans;
             position[2] = msg.z_trans;
