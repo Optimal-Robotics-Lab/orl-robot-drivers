@@ -1,7 +1,5 @@
 load("@com_github_mvukov_rules_ros2//ros2:bag.bzl", "ros2_bag")
 load("@com_github_mvukov_rules_ros2//ros2:cc_defs.bzl", "ros2_cpp_binary")
-load("@rules_python//python:defs.bzl", "py_binary")
-
 
 ros2_bag(
     name = "record",
@@ -41,7 +39,10 @@ ros2_bag(
 ros2_cpp_binary(
     name = "parse_bag",
     srcs = ["parse_bag.cc"],
-    data = ["//tools/bags:test_1"],
+    data = [
+        "//tools/bags:vicon_data",
+        "//tools/bags:robot_data",
+    ],
     deps = [
         "//src/go2/lib/utils:constants",
         "//src/go2/msgs:unitree_go_msgs",
@@ -52,8 +53,8 @@ ros2_cpp_binary(
         "@ros2_rcutils//:rcutils",
         "@ros2_rosbag2//:rosbag2_cpp",
         "@ros2_rosbag2//:rosbag2_storage",
-        "@ros2_common_interfaces//:std_msgs",
-        "@ros2_common_interfaces//:geometry_msgs",
+        "@ros2_common_interfaces//:cpp_std_msgs",
+        "@ros2_common_interfaces//:cpp_geometry_msgs",
         "@rules_cc//cc/runfiles:runfiles",
         "@bazel_tools//tools/cpp/runfiles",
     ],
