@@ -24,6 +24,9 @@
 #include "src/go2/lib/utils/constants.h"
 #include "src/go2/msgs/unitree_go_msgs.h"
 
+#include "geometry_msgs/msg/vector3.hpp"
+
+
 using Go2State = unitree_go::msg::LowState;
 using Go2Command = unitree_go::msg::LowCmd;
 using namespace robot;
@@ -108,6 +111,15 @@ class WalkingPolicy : public rclcpp::Node {
         absl::Status set_command(const Vector3<float>& new_command) {
             std::lock_guard<std::mutex> lock(mutex);
             command = new_command;
+            
+        if (policy_command_publisher_) {
+            geometry_msgs::msg::Vector3 command_msg;
+            command_msg.x = command(0);
+            command_msg.y = command(1);
+            command_msg.z = command(2);
+            policy_command_publisher_->publish(command_msg);
+        }
+
             return absl::OkStatus();
         };
         
@@ -119,6 +131,15 @@ class WalkingPolicy : public rclcpp::Node {
         absl::Status set_command(const std::array<float, 3>& new_command) {
             std::lock_guard<std::mutex> lock(mutex);
             command = Eigen::Map<const constants::Vector3<float>>(new_command.data());
+
+            if (policy_command_publisher_) {
+                geometry_msgs::msg::Vector3 command_msg;
+                command_msg.x = command(0);
+                command_msg.y = command(1);
+                command_msg.z = command(2);
+                policy_command_publisher_->publish(command_msg);
+            }
+
             return absl::OkStatus();
         };
 
@@ -225,6 +246,7 @@ class WalkingPolicy : public rclcpp::Node {
         std::mutex mutex;
 
         // ROS2 Thread:
+        rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr policy_command_publisher_;
         rclcpp::executors::MultiThreadedExecutor executor;
         std::jthread executor_thread;
         rclcpp::TimerBase::SharedPtr timer_;

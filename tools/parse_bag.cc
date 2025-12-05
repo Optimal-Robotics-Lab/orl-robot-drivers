@@ -23,6 +23,7 @@
 #include "src/go2/lib/utils/constants.h"
 #include "src/go2/msgs/unitree_go_msgs.h"
 #include "src/vicon/msgs/vicon_receiver_msgs.h"
+#include "geometry_msgs/msg/vector3.hpp"
 
 using rules_cc::cc::runfiles::Runfiles;
 
@@ -82,6 +83,7 @@ int main(int argc, char** argv) {
     rclcpp::Serialization<unitree_go::msg::LowState> lowstate_serializer;
     rclcpp::Serialization<unitree_go::msg::LowCmd> lowcmd_serializer;
     rclcpp::Serialization<vicon_receiver::msg::Position> vicon_position_serializer;
+    rclcpp::Serialization<geometry_msgs::msg::Vector3> policy_command_serializer;
 
     // Bag Metadata:
     const auto& metadata = reader.get_metadata();
@@ -115,10 +117,16 @@ int main(int argc, char** argv) {
         std::array<float, 4> orientation{};
     };
 
+    struct PolicyCommandData {
+        rcutils_time_point_value_t time_stamp_ns{ 0 };
+        std::array<float, 3> command{};
+    };
+
     std::vector<MotorMessageData> state_history;
     std::vector<MotorMessageData> command_history;
     std::vector<IMUMessageData> imu_history;
     std::vector<ViconMessageData> vicon_history;
+    std::vector<PolicyCommandData> policy_command_history;
 
     while (reader.has_next()) {
         auto serialized_message = reader.read_next();
@@ -194,7 +202,6 @@ int main(int argc, char** argv) {
             command_history.push_back(command_data);
         }
         else if (type_name == "vicon_receiver/msg/Position") {
-            // Vicon data parsing can be added here if needed in the future.
             auto time_stamp_ns = serialized_message->time_stamp;
             vicon_receiver::msg::Position msg;
             vicon_position_serializer.deserialize_message(&extracted_message, &msg);
@@ -215,6 +222,24 @@ int main(int argc, char** argv) {
             };
 
             vicon_history.push_back(vicon_data);
+        }
+        else if (type_name == "geometry_msgs/msg/Vector3") {
+            auto time_stamp_ns = serialized_message->time_stamp;
+
+            geometry_msgs::msg::Vector3 msg;
+            policy_command_serializer.deserialize_message(&extracted_message, &msg);
+
+            std::array<float, 3> command{};
+            command[0] = msg.x;
+            command[1] = msg.y;
+            command[2] = msg.z;
+
+            auto policy_command_data = PolicyCommandData{
+                .time_stamp_ns = time_stamp_ns,
+                .command = command
+            };
+
+            policy_command_history.push_back(policy_command_data);
         }
     }
     
@@ -278,6 +303,16 @@ int main(int argc, char** argv) {
         vicon_file << "\n";
     }
     vicon_file.close();
+
+    std::ofstream policy_command_file("policy_command_history.csv");
+    for (const auto& entry : policy_command_history) {
+        policy_command_file << entry.time_stamp_ns;
+        for (const auto& cmd : entry.command)
+            policy_command_file << "," << cmd;
+
+        policy_command_file << "\n";
+    }
+    policy_command_file.close();
 
     return 0;
 }

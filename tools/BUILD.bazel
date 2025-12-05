@@ -7,16 +7,16 @@ ros2_bag(
     name = "record",
     args = [
         "record",
-        "/relay/lowcmd",
-        "/relay/lowstate",
-        "/vicon/UnitreeGo2/UnitreeGo2",
-        "-o",
-        "robot_bag",
+        "/lowcmd",
+        "/lowstate",
+        "/policy_command",
     ],
     idl_deps = [
         "//src/go2/msgs:unitree_api",
         "//src/go2/msgs:unitree_go",
         "//src/vicon/msgs:vicon_receiver",
+        "@ros2_common_interfaces//:std_msgs",
+        "@ros2_common_interfaces//:geometry_msgs",
     ],
 )
 
@@ -32,6 +32,9 @@ ros2_bag(
     idl_deps = [
         "//src/go2/msgs:unitree_api",
         "//src/go2/msgs:unitree_go",
+        "//src/vicon/msgs:vicon_receiver",
+        "@ros2_common_interfaces//:std_msgs",
+        "@ros2_common_interfaces//:geometry_msgs",
     ],
 )
 
@@ -49,19 +52,10 @@ ros2_cpp_binary(
         "@ros2_rcutils//:rcutils",
         "@ros2_rosbag2//:rosbag2_cpp",
         "@ros2_rosbag2//:rosbag2_storage",
+        "@ros2_common_interfaces//:std_msgs",
+        "@ros2_common_interfaces//:geometry_msgs",
         "@rules_cc//cc/runfiles:runfiles",
         "@bazel_tools//tools/cpp/runfiles",
     ],
     visibility = ["//visibility:public"],
-)
-
-py_binary(
-    name = "relay_node",
-    srcs = ["relay_node.py"],
-    deps = [
-        "//src/go2/msgs:py_unitree_api_msgs",
-        "//src/go2/msgs:py_unitree_go_msgs",
-        "@ros2_common_interfaces//:py_std_msgs",
-        "@ros2_rclpy//:rclpy",
-    ],
 )

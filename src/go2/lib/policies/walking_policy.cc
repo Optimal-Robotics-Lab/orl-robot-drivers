@@ -25,6 +25,8 @@
 #include "src/go2/lib/utils/utilities.h"
 #include "src/go2/msgs/unitree_go_msgs.h"
 
+#include "geometry_msgs/msg/vector3.hpp"
+
 
 using Go2State = unitree_go::msg::LowState;
 using Go2Command = unitree_go::msg::LowCmd;
@@ -43,6 +45,16 @@ WalkingPolicy::WalkingPolicy(
     // Set Control Rate:
     declare_parameter("control_rate_us", 20000);
     this->control_rate_us = this->get_parameter("control_rate_us").as_int();
+    
+    // Create default QoS Profile:
+    rclcpp::QoS qos_profile(10);
+    qos_profile.best_effort();
+    
+    // Create Publisher Node:
+    policy_command_publisher_ = this->create_publisher<geometry_msgs::msg::Vector3>(
+        "/policy_command",
+        qos_profile
+    );
 }
 
 WalkingPolicy::~WalkingPolicy() {
