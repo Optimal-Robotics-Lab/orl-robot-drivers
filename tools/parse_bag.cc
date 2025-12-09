@@ -104,6 +104,12 @@ int main(int argc, char** argv) {
         std::array<float, robot::go2::constants::num_joints> torques{};
     };
 
+    struct ContactMessageData {
+        rcutils_time_point_value_t time_stamp_ns{ 0 };
+        std::array<std::int16_t, 4> foot_force{};
+        std::array<std::int16_t, 4> foot_force_estimate{};
+    };
+
     struct IMUMessageData {
         rcutils_time_point_value_t time_stamp_ns{ 0 };
         std::array<float, 4> quaternion{};
@@ -124,6 +130,7 @@ int main(int argc, char** argv) {
 
     std::vector<MotorMessageData> state_history;
     std::vector<MotorMessageData> command_history;
+    std::vector<ContactMessageData> contact_history;
     std::vector<IMUMessageData> imu_history;
     std::vector<ViconMessageData> vicon_history;
     std::vector<PolicyCommandData> policy_command_history;
@@ -149,6 +156,13 @@ int main(int argc, char** argv) {
                 torques[i] = msg.motor_state[i].tau_est;
             }
 
+            // Foot Contacts:
+            std::array<std::int16_t, 4> foot_force, foot_force_estimate;
+            for (size_t i = 0; i < 4; ++i) {
+                foot_force[i] = msg.foot_force[i];
+                foot_force_estimate[i] = msg.foot_force_est[i];
+            }
+
             // IMU State:
             std::array<float, 4> quaternion{};
             std::array<float, 3> gyroscope{};
@@ -169,6 +183,12 @@ int main(int argc, char** argv) {
                 .torques = torques
             };
 
+            auto contact_data = ContactMessageData{
+                .time_stamp_ns = time_stamp_ns,
+                .foot_force = foot_force,
+                .foot_force_estimate = foot_force_estimate
+            };
+
             auto imu_data = IMUMessageData{
                 .time_stamp_ns = time_stamp_ns,
                 .quaternion = quaternion,
@@ -177,6 +197,7 @@ int main(int argc, char** argv) {
             };
 
             state_history.push_back(state_data);
+            contact_history.push_back(contact_data);
             imu_history.push_back(imu_data);
 
         } 
@@ -259,6 +280,17 @@ int main(int argc, char** argv) {
         state_file << "\n";
     }
     state_file.close();
+
+    std::ofstream contact_file("contact_history.csv");
+    for (const auto& entry : contact_history) {
+        contact_file << entry.time_stamp_ns;
+        for (const auto& force : entry.foot_force)
+            contact_file << "," << force;
+        for (const auto& force_est : entry.foot_force_estimate)
+            contact_file << "," << force_est;
+        contact_file << "\n";
+    }
+    contact_file.close();
 
     std::ofstream imu_file("imu_history.csv");
     for (const auto& entry : imu_history) {
