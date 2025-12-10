@@ -102,6 +102,7 @@ int main(int argc, char** argv) {
         std::array<float, robot::go2::constants::num_joints> positions{};
         std::array<float, robot::go2::constants::num_joints> velocities{};
         std::array<float, robot::go2::constants::num_joints> torques{};
+        std::array<float, robot::go2::constants::num_joints> accelerations{};
     };
 
     struct ContactMessageData {
@@ -149,11 +150,12 @@ int main(int argc, char** argv) {
 
             unitree_go::msg::LowState msg;
             lowstate_serializer.deserialize_message(&extracted_message, &msg);
-            std::array<float, robot::go2::constants::num_joints> positions{}, velocities{}, torques{};
+            std::array<float, robot::go2::constants::num_joints> positions{}, velocities{}, torques{}, accelerations{};
             for (size_t i = 0; i < robot::go2::constants::num_joints; ++i) {
                 positions[i] = msg.motor_state[i].q;
                 velocities[i] = msg.motor_state[i].dq;
                 torques[i] = msg.motor_state[i].tau_est;
+                accelerations[i] = msg.motor_state[i].ddq;
             }
 
             // Foot Contacts:
@@ -180,7 +182,8 @@ int main(int argc, char** argv) {
                 .time_stamp_ns = time_stamp_ns,
                 .positions = positions,
                 .velocities = velocities,
-                .torques = torques
+                .torques = torques,
+                .accelerations = accelerations
             };
 
             auto contact_data = ContactMessageData{
@@ -276,6 +279,9 @@ int main(int argc, char** argv) {
 
         for (const auto& torque : entry.torques)
             state_file << "," << torque;
+
+        for (const auto& acceleration : entry.accelerations)
+            state_file << "," << acceleration;
 
         state_file << "\n";
     }
