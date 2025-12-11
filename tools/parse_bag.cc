@@ -16,8 +16,11 @@
 #include "rosbag2_cpp/readers/sequential_reader.hpp"
 #include "rosbag2_storage/storage_options.hpp"
 #include "rosbag2_cpp/converter_options.hpp"
+
+#include "rclcpp/time.hpp"
 #include "rclcpp/serialization.hpp"
 #include "rclcpp/serialized_message.hpp"
+
 #include "rcutils/time.h"
 
 #include "src/go2/lib/utils/constants.h"
