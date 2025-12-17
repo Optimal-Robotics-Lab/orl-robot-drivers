@@ -94,7 +94,10 @@ ros2_cpp_binary(
 ros2_cpp_binary(
     name = "go2_run_test",
     srcs = ["go2_run_test.cc"],
-    data = ["//onnx_models:onnx_models"],
+    data = [
+        "//onnx_models:position_control_models",
+        "//onnx_models:velocity_control_models",
+    ],
     deps = [
         "//src/go2/lib/utils:constants",
         "//src/go2/lib/utils:containers",
