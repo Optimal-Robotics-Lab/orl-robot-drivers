@@ -85,7 +85,7 @@ private:
      * @brief Callback function for processing incoming messages
      * @param msg The incoming message
      */
-    void callback(const unitree_go::msg::WirelessController::SharedPtr msg);
+    void callback(const unitree_go::msg::WirelessController::ConstSharedPtr msg);
 
     /**
      * @brief Process the axis values with smoothing and deadzone

@@ -1,4 +1,4 @@
-#include "src/go2/lib/policies/walking_policy.h"
+#include "src/go2/lib/policies/position_control_policy.h"
 
 #include <iostream>
 #include <vector>   
@@ -34,7 +34,7 @@ using namespace robot;
 using namespace robot::constants;
 
 
-WalkingPolicy::WalkingPolicy(
+PositionControlPolicy::PositionControlPolicy(
     const rclcpp::NodeOptions& options,
     std::filesystem::path onnx_model_path,
     std::shared_ptr<Go2Driver> unitree_driver
@@ -57,12 +57,12 @@ WalkingPolicy::WalkingPolicy(
     );
 }
 
-WalkingPolicy::~WalkingPolicy() {
+PositionControlPolicy::~PositionControlPolicy() {
     if (executor.is_spinning())
         executor.cancel();
 }
 
-absl::Status WalkingPolicy::initialize() {
+absl::Status PositionControlPolicy::initialize() {
     absl::Status result;
     // Initialize Robot Driver:
     if (!unitree_driver->is_initialized())
@@ -87,7 +87,7 @@ absl::Status WalkingPolicy::initialize() {
     return result;
 };
 
-absl::Status WalkingPolicy::initialize_thread() {
+absl::Status PositionControlPolicy::initialize_thread() {
     absl::Status result;
 
     if (!unitree_driver->is_thread_initialized())
@@ -95,7 +95,7 @@ absl::Status WalkingPolicy::initialize_thread() {
 
     if (executor.is_spinning())
         return absl::InternalError(
-            "[Walking Policy Interface] [initialize_thread]: Node is already spinning."
+            "[Position Control Policy Interface] [initialize_thread]: Node is already spinning."
         );
 
     thread_initialized = true;
@@ -105,10 +105,10 @@ absl::Status WalkingPolicy::initialize_thread() {
     return absl::OkStatus();
 };
 
-absl::Status WalkingPolicy::stop_thread() {
+absl::Status PositionControlPolicy::stop_thread() {
     if (!thread_initialized)
         return absl::FailedPreconditionError(
-            "[Walking Policy Interface] [stop_thread]: Node needs to be spinning."
+            "[Position Control Policy Interface] [stop_thread]: Node needs to be spinning."
         );
 
     if (executor.is_spinning())
@@ -118,11 +118,11 @@ absl::Status WalkingPolicy::stop_thread() {
     return absl::OkStatus();
 };
 
-absl::Status WalkingPolicy::make_observation() {
+absl::Status PositionControlPolicy::make_observation() {
     // Get Measurements:
     std::optional<Go2State> state = unitree_driver->get_state();
     if (!state)
-        return absl::InternalError("[Walking Policy Interface] [make_observation]: Failed to get state from Unitree driver");
+        return absl::InternalError("[Position Control Policy Interface] [make_observation]: Failed to get state from Unitree driver");
 
     // Get Measurements from the state:
     const auto& imu_state = state->imu_state;
@@ -164,13 +164,13 @@ absl::Status WalkingPolicy::make_observation() {
     absl::Status status = onnx_driver->set_observation(observation);
     if (!status.ok()) {
         std::string message = std::string(status.message());
-        return absl::InternalError("[Walking Policy Interface] [make_observation]: Failed to set observation in ONNX driver: " + message);
+        return absl::InternalError("[Position Control Policy Interface] [make_observation]: Failed to set observation in ONNX driver: " + message);
     }
 
     return absl::OkStatus();
 };
 
-Go2Command WalkingPolicy::policy_command() {
+Go2Command PositionControlPolicy::policy_command() {
     const auto& policy_output = onnx_driver->get_policy_output();
     go2::constants::MotorVector<float> actions = Eigen::Map<const go2::constants::MotorVector<float>>(policy_output.data());
     go2::constants::MotorVector<float> position_setpoints = default_position + master_gain * action_scale * actions;
@@ -187,14 +187,14 @@ Go2Command WalkingPolicy::policy_command() {
     return command;
 };
 
-void WalkingPolicy::policy_callback() {
+void PositionControlPolicy::policy_callback() {
     absl::Status result;
     std::lock_guard<std::mutex> lock(mutex);
 
     result.Update(this->make_observation());
     if (!result.ok()) {
         std::string message = std::string(result.message());
-        RCLCPP_ERROR(this->get_logger(), "[Walking Policy Interface] Failed to make observation: %s", message.c_str());
+        RCLCPP_ERROR(this->get_logger(), "[Position Control Policy Interface] Failed to make observation: %s", message.c_str());
         std::ignore = unitree_driver->update_command(go2::utilities::damping_command());
         return;
     }
@@ -202,7 +202,7 @@ void WalkingPolicy::policy_callback() {
     result.Update(onnx_driver->inference_policy());
     if (!result.ok()) {
         std::string message = std::string(result.message());
-        RCLCPP_ERROR(this->get_logger(), "[Walking Policy Interface] Failed to run policy inference: %s", message.c_str());
+        RCLCPP_ERROR(this->get_logger(), "[Position Control Policy Interface] Failed to run policy inference: %s", message.c_str());
         std::ignore = unitree_driver->update_command(go2::utilities::damping_command());
         return;
     }

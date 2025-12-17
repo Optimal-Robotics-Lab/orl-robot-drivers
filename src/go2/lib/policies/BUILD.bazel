@@ -1,9 +1,30 @@
 load("@com_github_mvukov_rules_ros2//ros2:cc_defs.bzl", "ros2_cpp_library")
 
 ros2_cpp_library(
-    name = "walking_policy",
-    srcs = ["walking_policy.cc"],
-    hdrs = ["walking_policy.h"],
+    name = "position_control_policy",
+    srcs = ["position_control_policy.cc"],
+    hdrs = ["position_control_policy.h"],
+    deps = [
+        "//src/go2/lib/driver:go2_driver",
+        "//src/go2/lib/driver:onnx_driver",
+        "//src/utils:constants",
+        "//src/go2/lib/utils:constants",
+        "//src/go2/lib/utils:utilities",
+        "//src/go2/msgs:unitree_go_msgs",
+        "@eigen//:eigen",
+        "@ros2_rclcpp//:rclcpp",
+        "@ros2_common_interfaces//:cpp_std_msgs",
+        "@ros2_common_interfaces//:cpp_geometry_msgs",
+        "@abseil-cpp//absl/status:status",
+        "@abseil-cpp//absl/log:absl_check",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+ros2_cpp_library(
+    name = "velocity_control_policy",
+    srcs = ["velocity_control_policy.cc"],
+    hdrs = ["velocity_control_policy.h"],
     deps = [
         "//src/go2/lib/driver:go2_driver",
         "//src/go2/lib/driver:onnx_driver",

@@ -34,15 +34,15 @@ using namespace robot::constants;
 
 
 /**
- * @class WalkingPolicy
+ * @class PositionControlPolicy
  * @brief A class to control the Unitree's Go2 robot using a Policy loaded from an ONNX file.
  */
-class WalkingPolicy : public rclcpp::Node {
+class PositionControlPolicy : public rclcpp::Node {
     public:
         /**
          * @brief Construct a new Policy Interface object
          */
-        WalkingPolicy(
+        PositionControlPolicy(
             const rclcpp::NodeOptions& options,
             std::filesystem::path onnx_model_path,
             std::shared_ptr<Go2Driver> unitree_driver
@@ -51,13 +51,13 @@ class WalkingPolicy : public rclcpp::Node {
         /**
          * @brief Destroy the Policy Interface object, ensuring proper cleanup of resources.
          */
-        ~WalkingPolicy();
+        ~PositionControlPolicy();
 
         // Disable copy and move semantics to prevent accidental duplication
-        WalkingPolicy(const WalkingPolicy&) = delete;
-        WalkingPolicy& operator=(const WalkingPolicy&) = delete;
-        WalkingPolicy(WalkingPolicy&&) = delete;
-        WalkingPolicy& operator=(WalkingPolicy&&) = delete;
+        PositionControlPolicy(const PositionControlPolicy&) = delete;
+        PositionControlPolicy& operator=(const PositionControlPolicy&) = delete;
+        PositionControlPolicy(PositionControlPolicy&&) = delete;
+        PositionControlPolicy& operator=(PositionControlPolicy&&) = delete;
 
         /**
          * @brief Initializes the Unitree Driver and ONNX Session.

@@ -92,7 +92,7 @@ class Go2Driver : public rclcpp::Node {
          * @brief Callback function for the robot state subscriber.
          * @param msg The received Go2State message.
          */
-        void state_callback(const Go2State::SharedPtr msg);
+        void state_callback(const Go2State::ConstSharedPtr msg);
 
         /**
          * @brief Callback function for the command publishing timer.
@@ -106,7 +106,7 @@ class Go2Driver : public rclcpp::Node {
 
         // Go2 State:
         std::mutex state_mutex;
-        Go2State::SharedPtr latest_state_message;
+        Go2State::ConstSharedPtr latest_state_message;
 
         // Go2 Command:
         std::mutex command_mutex;

@@ -23,15 +23,38 @@ ros2_cpp_binary(
 )
 
 ros2_cpp_binary(
-    name = "go2_run_policy",
-    srcs = ["go2_run_policy.cc"],
-    data = ["//onnx_models:onnx_models"],
+    name = "go2_run_position_policy",
+    srcs = ["go2_run_position_policy.cc"],
+    data = ["//onnx_models:position_control_models"],
     deps = [
         "//src/go2/lib/utils:constants",
         "//src/go2/lib/utils:containers",
         "//src/go2/lib/utils:utilities",
         "//src/go2/lib/driver:wireless_controller_driver",
-        "//src/go2/lib/policies:walking_policy",
+        "//src/go2/lib/policies:position_control_policy",
+        "//src/go2/lib/driver:go2_driver",
+        "//src/go2/msgs:unitree_go_msgs",
+        "@eigen//:eigen",
+        "@onnxruntime-bazel//:onnxruntime",
+        "@ros2_rclcpp//:rclcpp",
+        "@abseil-cpp//absl/log:absl_check",
+        "@abseil-cpp//absl/status:status",
+        "@rules_cc//cc/runfiles:runfiles",
+        "@bazel_tools//tools/cpp/runfiles",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+ros2_cpp_binary(
+    name = "go2_run_velocity_policy",
+    srcs = ["go2_run_velocity_policy.cc"],
+    data = ["//onnx_models:velocity_control_models"],
+    deps = [
+        "//src/go2/lib/utils:constants",
+        "//src/go2/lib/utils:containers",
+        "//src/go2/lib/utils:utilities",
+        "//src/go2/lib/driver:wireless_controller_driver",
+        "//src/go2/lib/policies:velocity_control_policy",
         "//src/go2/lib/driver:go2_driver",
         "//src/go2/msgs:unitree_go_msgs",
         "@eigen//:eigen",
@@ -77,7 +100,7 @@ ros2_cpp_binary(
         "//src/go2/lib/utils:containers",
         "//src/go2/lib/utils:utilities",
         "//src/go2/lib/driver:wireless_controller_driver",
-        "//src/go2/lib/policies:walking_policy",
+        "//src/go2/lib/policies:position_control_policy",
         "//src/go2/lib/driver:go2_driver",
         "//src/go2/msgs:unitree_go_msgs",
         "@eigen//:eigen",

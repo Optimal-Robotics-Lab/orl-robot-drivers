@@ -16,7 +16,7 @@
 
 #include "src/go2/lib/driver/wireless_controller_driver.h"
 #include "src/go2/lib/driver/go2_driver.h"
-#include "src/go2/lib/policies/walking_policy.h"
+#include "src/go2/lib/policies/velocity_control_policy.h"
 
 #include "src/go2/lib/utils/constants.h"
 #include "src/go2/lib/utils/containers.h"
@@ -59,7 +59,7 @@ int main(int argc, char * argv[]) {
     );
 
     std::filesystem::path onnx_model_path = 
-        runfiles->Rlocation("orl-robot-drivers/onnx_models/serene-tree-61.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/velocity_control/fresh-smoke-7.onnx");
     
     absl::Status result;
     auto ControllerDriver = std::make_shared<WirelessControllerDriver>();
@@ -84,7 +84,7 @@ int main(int argc, char * argv[]) {
 
     // Initialize ONNX Driver setting Default HighLevelCommandMode and Command:
     constexpr size_t control_rate_ms = 20;
-    auto PolicyDriver = std::make_shared<WalkingPolicy>(options, onnx_model_path, RobotDriver);
+    auto PolicyDriver = std::make_shared<VelocityControlPolicy>(options, onnx_model_path, RobotDriver);
     result.Update(PolicyDriver->initialize_thread());
 
     // Sleep for a while to allow the thread to spin up:

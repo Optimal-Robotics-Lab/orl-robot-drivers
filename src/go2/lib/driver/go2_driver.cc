@@ -35,7 +35,7 @@ Go2Driver::Go2Driver() : Node("go2_driver") {
     state_subscription_ = this->create_subscription<Go2State>(
         "/lowstate",
         qos_profile,
-        [this](const Go2State::SharedPtr msg) {
+        [this](std::shared_ptr<const Go2State> msg) {
             this->state_callback(msg);
         }
     );
@@ -165,7 +165,7 @@ void Go2Driver::initialize_command() {
     command = robot::go2::utilities::default_position_command();
 }
 
-void Go2Driver::state_callback(const Go2State::SharedPtr msg) {
+void Go2Driver::state_callback(const Go2State::ConstSharedPtr msg) {
     std::lock_guard<std::mutex> lock(state_mutex);
     latest_state_message = msg;
 }
