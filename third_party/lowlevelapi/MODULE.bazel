@@ -1,0 +1,12 @@
+"""
+    Agility Robotics Low-Level API Module
+"""
+module(
+    name = "agility-lowlevelapi"
+)
+
+# Platforms:
+bazel_dep(name = "platforms", version = "1.0.0")
+
+# cc rules:
+bazel_dep(name = "rules_cc", version = "0.1.1")

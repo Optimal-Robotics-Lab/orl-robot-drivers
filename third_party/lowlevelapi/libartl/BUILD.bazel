@@ -1,0 +1,34 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "crc32c",
+    srcs = ["crc32c.c"],
+    hdrs = ["crc32c.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "artl_internal",
+    srcs = ["artl_internal.c"],
+    hdrs = [
+        "artl_internal.h",
+        "artl.h",
+    ],
+    deps = [
+        "//libartl:crc32c",
+        "//libartl/zstd:zstd",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "artl",
+    srcs = ["artl.c"],
+    hdrs = ["artl.h"],
+    deps = [
+        "//libartl:crc32c",
+        "//libartl:artl_internal",
+        "//libartl/zstd:zstd",
+    ],
+    visibility = ["//visibility:public"],
+)

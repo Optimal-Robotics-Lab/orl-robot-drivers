@@ -32,6 +32,13 @@ git_override(
     patches = ["patches/unitree_ros2/module_dot_bazel.patch", "patches/unitree_ros2/build_dot_bazel.patch"],
 )
 
+# Agility lowlevelapi
+bazel_dep(name = "agility-lowlevelapi")
+local_path_override(
+    module_name = "agility-lowlevelapi",
+    path = "third_party/lowlevelapi",
+)
+
 # com_github_mvukov_rules_ros2
 bazel_dep(name = "com_github_mvukov_rules_ros2")
 git_override(
