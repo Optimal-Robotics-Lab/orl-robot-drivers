@@ -1,5 +1,18 @@
 #pragma once
 
+#include <memory>
+#include <mutex>
+#include <thread>
+#include <optional>
+
+#include "absl/status/status.h"
+
+#include "rclcpp/rclcpp.hpp"
+
+#include "lowlevelapi.h"
+
+#include "src/digit/msgs/digit_msgs.h"
+
 class LowLevelApiDriver : public rclcpp::Node {
     public:
         /**
@@ -56,4 +69,4 @@ class LowLevelApiDriver : public rclcpp::Node {
         bool initialized = false;
         int control_rate_us;
         std::string publisher_address;
-}
+};
