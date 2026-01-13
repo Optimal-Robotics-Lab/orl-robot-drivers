@@ -26,6 +26,9 @@ int main(int argc, char** argv) {
         rclcpp::spin(node);
     });
 
+    // Allow some time for initialization:
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
     // Test get_limits:
     auto limits = node->get_limits();
     if (!limits) {
@@ -46,8 +49,9 @@ int main(int argc, char** argv) {
         );
     }
 
+    // Allow some time for any remaining operations to complete before shutdown.
     std::this_thread::sleep_for(std::chrono::seconds(2));
-    
+
     rclcpp::shutdown();
 
     return 0;
