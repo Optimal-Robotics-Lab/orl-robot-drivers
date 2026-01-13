@@ -154,21 +154,13 @@ void LowLevelApiDriver::state_callback(const llapi_observation_t& observation) {
 void LowLevelApiDriver::command_callback(const DigitCommand::ConstSharedPtr msg) {
     std::scoped_lock lock(this->command_mutex_);
     this->latest_command_ = msg;
-    this->has_command_ = true;
 }
 
 absl::Status LowLevelApiDriver::internal() {
     // Check if disconnected:
     if (!llapi_connected()) {
         // Attempt to send damping command. But this error should kill the node.
-        llapi_command_t damping_command = {};
-        for (size_t i = 0; i < robot::digit::constants::num_motors; ++i) {
-            damping_command.motors[i].torque = 0.0;
-            damping_command.motors[i].velocity = 0.0;
-            damping_command.motors[i].damping = 5.0;
-        }
-        damping_command.fallback_opmode = static_cast<int32_t>(robot::digit::constants::OpMode::Damping);
-        damping_command.apply_command = false;
+        llapi_command_t damping_command = this->llapi_damping_command();
 
         llapi_send_command(&damping_command);
 
@@ -183,27 +175,24 @@ absl::Status LowLevelApiDriver::internal() {
     constexpr auto LLAPI_NO_NEW_DATA = 0;
 
     auto result = llapi_get_observation(&this->observation_);
-    switch (result) {
-        case LLAPI_NO_NEW_DATA:
-            return absl::OkStatus();
-        case LLAPI_ERROR:
-            RCLCPP_ERROR_THROTTLE(
-                this->get_logger(), *this->get_clock(), 1000, 
-                "LowLevelApi Driver: Error receiving observation."
-            );
-            return absl::InternalError("LowLevelApi Driver: Error receiving observation.");
-        default:
-            break;
+    if (result == LLAPI_NO_NEW_DATA) return absl::OkStatus();
+    if (result == LLAPI_ERROR) {
+        RCLCPP_ERROR_THROTTLE(
+            this->get_logger(), *this->get_clock(), 1000, 
+            "LowLevelApi Driver: Error receiving observation."
+        );
+        return absl::InternalError("LowLevelApi Driver: Error receiving observation.");
     }
 
     const DigitCommand::ConstSharedPtr command_snapshot = [this]() -> DigitCommand::ConstSharedPtr {
         std::scoped_lock lock(this->command_mutex_);
-        if (!this->has_command_) return nullptr;
         return this->latest_command_;
     }();
     if (!command_snapshot) {
         this->state_callback(this->observation_);
-        return absl::OkStatus();
+        llapi_command_t damping_command = this->llapi_damping_command();
+        llapi_send_command(&damping_command);
+        return absl::InternalError("LowLevelApi Driver: Command received is null.");
     }
 
     for (size_t i = 0; const auto& cmd : command_snapshot->motors) {
@@ -227,4 +216,17 @@ absl::Status LowLevelApiDriver::internal() {
 
     this->state_callback(this->observation_);
     return absl::OkStatus();
+}
+
+llapi_command_t LowLevelApiDriver::llapi_damping_command() {
+    llapi_command_t damping_command = {};
+    for (size_t i = 0; i < robot::digit::constants::num_motors; ++i) {
+        damping_command.motors[i].torque = 0.0;
+        damping_command.motors[i].velocity = 0.0;
+        damping_command.motors[i].damping = 5.0;
+    }
+    damping_command.fallback_opmode = static_cast<int32_t>(robot::digit::constants::OpMode::Damping);
+    damping_command.apply_command = true;
+
+    return damping_command;
 }

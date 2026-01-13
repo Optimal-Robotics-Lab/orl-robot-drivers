@@ -65,9 +65,10 @@ class LowLevelApiDriver : public rclcpp::Node {
         void command_callback(const DigitCommand::ConstSharedPtr msg);
         absl::Status internal();
 
+        llapi_command_t llapi_damping_command();
+
         // Command Cache:
         std::mutex command_mutex_;
-        bool has_command_ = false;
         DigitCommand::ConstSharedPtr latest_command_;
 
         // Agility llapi Observation and Command Structs:
