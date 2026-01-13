@@ -7,6 +7,13 @@ cc_library(
 )
 
 cc_library(
+    name = "containers",
+    srcs = ["containers.h"],
+    deps = ["//src/digit/lib/utils:constants"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "utilities",
     srcs = ["utilities.h"],
     deps = [
