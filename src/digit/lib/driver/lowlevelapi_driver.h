@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -44,10 +46,16 @@ class LowLevelApiDriver : public rclcpp::Node {
         absl::Status initialize();
 
         /**
-         * @brief Callback function to update command.
+         * @brief Setter function to update command.
          * @param command Command to be sent to the Low-level API.
          */
-        absl::Status update_command(const DigitCommand::ConstSharedPtr command);
+        absl::Status set_command(const DigitCommand::ConstSharedPtr command);
+
+        /**
+         * @brief Getter function to update command.
+         * @return std::optional<DigitState> The latest state if available, std::nullopt otherwise.
+         */
+        std::optional<DigitState> get_state();
 
         /**
          * @brief Retrieves the limits of the Low-level API if initialized.
@@ -65,11 +73,31 @@ class LowLevelApiDriver : public rclcpp::Node {
         void command_callback(const DigitCommand::ConstSharedPtr msg);
         absl::Status internal();
 
-        llapi_command_t llapi_damping_command();
+        DigitState llapi_observation_to_msg(const llapi_observation_t& observation);
+
+        // Damping Command:
+        static constexpr llapi_command_t DAMPING_COMMAND = []() {
+            llapi_command_t cmd = {};
+
+            for (std::size_t i = 0; i < robot::digit::constants::num_motors; ++i) {
+                cmd.motors[i].torque = 0.0;
+                cmd.motors[i].velocity = 0.0;
+                cmd.motors[i].damping = 5.0;
+            }
+
+            cmd.fallback_opmode = static_cast<std::int32_t>(robot::digit::constants::OpMode::Damping);
+            cmd.apply_command = true;
+
+            return cmd;
+        }();
 
         // Command Cache:
         std::mutex command_mutex_;
         DigitCommand::ConstSharedPtr latest_command_;
+
+        // State Cache:
+        std::mutex state_mutex_;
+        std::optional<llapi_observation_t> latest_observation_ = std::nullopt;
 
         // Agility llapi Observation and Command Structs:
         llapi_command_t command_ = {};
