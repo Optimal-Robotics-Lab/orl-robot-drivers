@@ -1,0 +1,17 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "constants",
+    srcs = ["constants.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "utilities",
+    srcs = ["utilities.h"],
+    deps = [
+        "//src/digit/lib/utils:constants",
+        "//src/digit/msgs:digit_msgs",
+    ],
+    visibility = ["//visibility:public"],
+)

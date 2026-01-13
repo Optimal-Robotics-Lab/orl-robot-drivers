@@ -12,6 +12,7 @@
 #include "lowlevelapi.h"
 
 #include "src/digit/lib/utils/constants.h"
+#include "src/digit/lib/utils/utilities.h"
 #include "src/digit/msgs/digit_msgs.h"
 
 using DigitState = digit_interface::msg::DigitState;
