@@ -1,5 +1,27 @@
-LowLevelApiDriver::LowLevelApiDriver() : Node("lowlevelapi_driver") {
-    // Set Command Control Rate:
+#include "src/digit/lib/driver/lowlevelapi_driver.h"
+
+#include <memory>
+#include <mutex>
+#include <thread>
+#include <optional>
+
+#include "absl/status/status.h"
+
+#include "rclcpp/rclcpp.hpp"
+
+#include "lowlevelapi.h"
+
+#include "src/digit/lib/utils/constants.h"
+#include "src/digit/msgs/digit_msgs.h"
+
+using DigitState = digit_interface::msg::DigitState;
+using DigitCommand = digit_interface::msg::DigitCommand;
+
+
+LowLevelApiDriver::LowLevelApiDriver() 
+    : Node("lowlevelapi_driver"),
+    latest_command_(std::make_shared<DigitCommand>(robot::digit::utilities::initialize_command()))
+{
     declare_parameter("control_rate_us", 1000);
     declare_parameter("publisher_address", "127.0.0.1");
     this->control_rate_us = this->get_parameter("control_rate_us").as_int();
@@ -10,10 +32,10 @@ LowLevelApiDriver::LowLevelApiDriver() : Node("lowlevelapi_driver") {
     qos_profile.best_effort();
 
     // Create Subscriber Node:
-    command_subscription_ = this->create_subscription<DigitCommand>(
+    command_subscriber_ = this->create_subscription<DigitCommand>(
         "/command",
         qos_profile,
-        [this](std::shared_ptr<const Command> msg) {
+        [this](std::shared_ptr<const DigitCommand> msg) {
             this->command_callback(msg);
         }
     );
@@ -35,6 +57,26 @@ LowLevelApiDriver::~LowLevelApiDriver() {
 absl::Status LowLevelApiDriver::initialize() {
     llapi_init(this->publisher_address.c_str());
 
+    auto start = std::chrono::steady_clock::now();
+    while (!llapi_connected()) {
+        llapi_observation_t obs;
+        llapi_get_observation(&obs);
+        
+        if (std::chrono::steady_clock::now() - start > std::chrono::seconds(5))
+            return absl::DeadlineExceededError("LowLevelApi Driver: Failed to connect to Digit.");
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    const llapi_limits_t* limits_ptr = llapi_get_limits();
+    if (limits_ptr) {
+        this->limits_ = *limits_ptr;
+    }
+    else {
+        this->limits_ = std::nullopt;
+        RCLCPP_WARN(get_logger(), "Could not fetch limits (returned NULL).");
+    }
+
     this->keep_running_ = true;
     this->llapi_thread_ = std::jthread([this]() {
         auto next_time = std::chrono::steady_clock::now();
@@ -43,17 +85,19 @@ absl::Status LowLevelApiDriver::initialize() {
             next_time += period;
             const auto status = this->internal();
             if (!status.ok()) {
-                RCLCPP_ERROR_THROTTLE(
+                RCLCPP_ERROR_STREAM_THROTTLE(
                     this->get_logger(), *this->get_clock(), 1000, 
-                    "LowLevelApi Driver: %s", status.message().c_str()
+                    "LowLevelApi Driver: " << status.message()
                 );
+                this->keep_running_ = false;
+                break;
             }
             const auto now = std::chrono::steady_clock::now();
             if (now > next_time) {
                 const auto overrun = std::chrono::duration_cast<std::chrono::microseconds>(now - next_time);
                 RCLCPP_WARN_THROTTLE(
                     this->get_logger(), *this->get_clock(), 1000, 
-                    "Loop Overrun! Exceeded cycle time by %ld us. Resetting schedule.", 
+                    "LowLevelApi Driver: Loop Overrun! Exceeded cycle time by %ld us. Resetting schedule.", 
                     overrun.count()
                 );
                 next_time = now;
@@ -113,6 +157,27 @@ void LowLevelApiDriver::command_callback(const DigitCommand::ConstSharedPtr msg)
 }
 
 absl::Status LowLevelApiDriver::internal() {
+    // Check if disconnected:
+    if (!llapi_connected()) {
+        // Attempt to send damping command. But this error should kill the node.
+        llapi_command_t damping_command = {};
+        for (size_t i = 0; i < robot::digit::constants::num_motors; ++i) {
+            damping_command.motors[i].torque = 0.0;
+            damping_command.motors[i].velocity = 0.0;
+            damping_command.motors[i].damping = 5.0;
+        }
+        damping_command.fallback_opmode = static_cast<int32_t>(robot::digit::constants::OpMode::Damping);
+        damping_command.apply_command = false;
+
+        llapi_send_command(&damping_command);
+
+        RCLCPP_ERROR_THROTTLE(
+            this->get_logger(), *this->get_clock(), 1000, 
+            "LowLevelApi Driver: Disconnected from robot."
+        );
+        return absl::InternalError("LowLevelApi Driver: Disconnected from robot.");
+    }
+
     constexpr auto LLAPI_ERROR = -1;
     constexpr auto LLAPI_NO_NEW_DATA = 0;
 
@@ -141,7 +206,7 @@ absl::Status LowLevelApiDriver::internal() {
     }
 
     for (size_t i = 0; const auto& cmd : command_snapshot->motors) {
-        if (i >= NUM_MOTORS) 
+        if (i >= robot::digit::constants::num_motors) 
             return absl::InternalError("LowLevelApi Driver: Exceeded max motors.");
 
         this->command_.motors[i].torque = 

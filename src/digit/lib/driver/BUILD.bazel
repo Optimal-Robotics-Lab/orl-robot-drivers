@@ -2,40 +2,14 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@com_github_mvukov_rules_ros2//ros2:cc_defs.bzl", "ros2_cpp_library")
 
 ros2_cpp_library(
-    name = "wireless_controller_driver",
-    srcs = ["wireless_controller_driver.cc"],
-    hdrs = ["wireless_controller_driver.h"],
+    name = "lowlevelapi_driver",
+    srcs = ["lowlevelapi_driver.cc"],
+    hdrs = ["lowlevelapi_driver.h"],
     deps = [
-        "//src/go2/msgs:unitree_go_msgs",
+        "//src/digit/msgs:digit_msgs",
+        "//src/digit/lib/utils:constants",
+        "@agility-lowlevelapi//:lowlevelapi",
         "@ros2_rclcpp//:rclcpp",
-        "@abseil-cpp//absl/status:status",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-ros2_cpp_library(
-    name = "go2_driver",
-    srcs = ["go2_driver.cc"],
-    hdrs = ["go2_driver.h"],
-    deps = [
-        "//src/go2/lib/utils:constants",
-        "//src/go2/lib/utils:utilities",
-        "//src/go2/lib/utils:crc",
-        "//src/go2/msgs:unitree_go_msgs",
-        "@ros2_rclcpp//:rclcpp",
-        "@abseil-cpp//absl/status:status",
-    ],
-    visibility = ["//visibility:public"],
-)
-
-cc_library(
-    name = "onnx_driver",
-    srcs = ["onnx_driver.cc"],
-    hdrs = ["onnx_driver.h"],
-    deps = [
-        "@eigen//:eigen",
-        "@onnxruntime-bazel//:onnxruntime",
-        "@abseil-cpp//absl/log:absl_check",
         "@abseil-cpp//absl/status:status",
     ],
     visibility = ["//visibility:public"],

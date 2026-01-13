@@ -11,7 +11,12 @@
 
 #include "lowlevelapi.h"
 
+#include "src/digit/lib/utils/constants.h"
 #include "src/digit/msgs/digit_msgs.h"
+
+using DigitState = digit_interface::msg::DigitState;
+using DigitCommand = digit_interface::msg::DigitCommand;
+
 
 class LowLevelApiDriver : public rclcpp::Node {
     public:
@@ -43,10 +48,21 @@ class LowLevelApiDriver : public rclcpp::Node {
          */
         absl::Status update_command(const DigitCommand::ConstSharedPtr command);
 
+        /**
+         * @brief Retrieves the limits of the Low-level API if initialized.
+         * @return std::optional<llapi_limits_t> The limits if initialized, std::nullopt otherwise.
+        */
+        std::optional<llapi_limits_t> get_limits() const {
+            if (!this->initialized)
+                return std::nullopt;
+
+            return this->limits_;
+        }
+
     private:
         void state_callback(const llapi_observation_t& observation);
         void command_callback(const DigitCommand::ConstSharedPtr msg);
-        void internal();
+        absl::Status internal();
 
         // Command Cache:
         std::mutex command_mutex_;
@@ -54,8 +70,8 @@ class LowLevelApiDriver : public rclcpp::Node {
         DigitCommand::ConstSharedPtr latest_command_;
 
         // Agility llapi Observation and Command Structs:
-        llapi_observation_t observation_ = { 0 }; 
-        llapi_command_t command_ = { 0 };
+        llapi_command_t command_ = {};
+        llapi_observation_t observation_ = {};
 
         // Threading
         std::jthread llapi_thread_;
@@ -67,6 +83,7 @@ class LowLevelApiDriver : public rclcpp::Node {
 
         // Member Variables:
         bool initialized = false;
+        std::optional<llapi_limits_t> limits_ = std::nullopt;
         int control_rate_us;
         std::string publisher_address;
 };
