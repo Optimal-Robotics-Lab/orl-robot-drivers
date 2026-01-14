@@ -1,8 +1,6 @@
 #include <thread>
 #include <chrono>
-#include <optional>
 #include <format>
-#include <string>
 #include <iostream>
 
 #include "rclcpp/rclcpp.hpp"
