@@ -25,7 +25,8 @@ ros2_bag(
         "tools/bags",
     ],
     data = [
-        "//tools/bags:bag_data",
+        "//tools/bags:vicon_data",
+        "//tools/bags:robot_data",
     ],
     idl_deps = [
         "//src/go2/msgs:unitree_api",

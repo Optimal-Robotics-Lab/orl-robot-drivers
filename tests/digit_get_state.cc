@@ -71,9 +71,9 @@ int main(int argc, char** argv) {
             "Motor {}:\n"
             "\t Position: {:.2f} rad \n \t Velocity: {:.2f} rad/s \n \t Torque: {:.2f} N-m",
             motor_name,
-            state->motor[i].position,
-            state->motor[i].velocity,
-            state->motor[i].torque
+            state->motor.position[i],
+            state->motor.velocity[i],
+            state->motor.torque[i]
         );
     }
 
@@ -85,8 +85,8 @@ int main(int argc, char** argv) {
             "Joint {}:\n"
             "\t Position: {:.2f} rad \n \t Velocity: {:.2f} rad/s",
             joint_name,
-            state->joint[i].position,
-            state->joint[i].velocity
+            state->joint.position[i],
+            state->joint.velocity[i]
         );
     }
 

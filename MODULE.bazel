@@ -135,9 +135,17 @@ use_repo(llvm, "llvm_toolchain", "llvm_toolchain_llvm")
 
 # Hedron's Compile Commands Extractor for Bazel
 # https://github.com/hedronvision/bazel-compile-commands-extractor
+# bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
+# git_override(
+#     module_name = "hedron_compile_commands",
+#     remote = "https://github.com/hedronvision/bazel-compile-commands-extractor.git",
+#     commit = "abb61a688167623088f8768cc9264798df6a9d10",
+# )
+
+# This can generate compile_commands somewhat successfully...
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 git_override(
     module_name = "hedron_compile_commands",
-    remote = "https://github.com/mikael-s-persson/bazel-compile-commands-extractor",
-    commit = "abb61a688167623088f8768cc9264798df6a9d10",
+    remote = "https://github.com/eugeneo/bazel-compile-commands-extractor.git",
+    commit = "844279a911d0a0adca480b299799f03f65290cce",
 )

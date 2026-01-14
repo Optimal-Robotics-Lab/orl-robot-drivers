@@ -100,7 +100,7 @@ absl::Status LowLevelApiDriver::initialize() {
                 const auto overrun = std::chrono::duration_cast<std::chrono::microseconds>(now - next_time);
                 RCLCPP_WARN_THROTTLE(
                     this->get_logger(), *this->get_clock(), 1000, 
-                    "LowLevelApi Driver: Loop Overrun! Exceeded cycle time by %ld us. Resetting schedule.", 
+                    "LowLevelApi Driver: Loop Overrun! Exceeded cycle time by %lld us. Resetting schedule.", 
                     overrun.count()
                 );
                 next_time = now;
@@ -182,7 +182,8 @@ absl::Status LowLevelApiDriver::internal() {
     // Check if disconnected:
     if (!llapi_connected()) {
         // Attempt to send damping command. But this error should kill the node.
-        llapi_send_command(&this->DAMPING_COMMAND);
+        llapi_command_t damping_command = this->DAMPING_COMMAND;
+        llapi_send_command(&damping_command);
 
         RCLCPP_ERROR_THROTTLE(
             this->get_logger(), *this->get_clock(), 1000, 
@@ -215,7 +216,8 @@ absl::Status LowLevelApiDriver::internal() {
     }();
     if (!command_snapshot) {
         this->state_callback(this->observation_);
-        llapi_send_command(&this->DAMPING_COMMAND);
+        llapi_command_t damping_command = this->DAMPING_COMMAND;
+        llapi_send_command(&damping_command);
         return absl::InternalError("LowLevelApi Driver: Command received is null.");
     }
 

@@ -3,7 +3,7 @@ load("@com_github_mvukov_rules_ros2//ros2:cc_defs.bzl", "ros2_cpp_binary")
 ros2_cpp_binary(
     name = "h1_2_run_policy",
     srcs = ["h1_2_run_policy.cc"],
-    data = ["//onnx_models:onnx_models"],
+    data = ["//onnx_models:legacy_models"],
     deps = [
         "//src/h1_2/lib/utils:constants",
         "//src/h1_2/lib/utils:containers",
@@ -71,7 +71,7 @@ ros2_cpp_binary(
 ros2_cpp_binary(
     name = "go2_run_handstand_policy",
     srcs = ["go2_run_handstand_policy.cc"],
-    data = ["//onnx_models:onnx_models"],
+    data = ["//onnx_models:handstand_models"],
     deps = [
         "//src/go2/lib/utils:constants",
         "//src/go2/lib/utils:containers",
