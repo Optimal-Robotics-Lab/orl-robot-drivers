@@ -189,7 +189,19 @@ int main(int argc, char * argv[]) {
     writer->create_topic({state_topic, "unitree_go/msg/LowState", "cdr", ""});
     writer->create_topic({command_topic, "unitree_go/msg/LowCmd", "cdr", ""});
     
-    std::cout << "Bag recording started at: " << storage_options.uri << std::endl;
+    // Wait for user to start the test:
+    std::cout << "Press 'A' on the controller to start the test." << std::endl;
+    while(rclcpp::ok()) {
+        if (ControllerDriver->is_pressed(WirelessControllerDriver::Button::A)) {
+            std::cout << "Starting Test..." << std::endl;
+            break;
+        }
+        if (ControllerDriver->is_pressed(WirelessControllerDriver::Button::B)) {
+            std::cout << "Exit requested by user." << std::endl;
+            return 0;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
     // Iterate over trajectories:
     for (const auto& trajectory : trajectories) {
