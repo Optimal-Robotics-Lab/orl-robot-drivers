@@ -1,13 +1,16 @@
-#include <iostream>
-#include <filesystem>
 #include <algorithm>
-#include <thread>
+#include <array>
 #include <chrono>
-#include <bit>
-#include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <vector>
+#include <cstddef>
 
 #include "rclcpp/rclcpp.hpp"
-
 #include "rosbag2_cpp/writer.hpp"
 #include "rosbag2_storage/storage_options.hpp"
 
@@ -35,7 +38,7 @@ ABSL_FLAG(
 );
 
 
-using PositionSetpoints = std::array<double, go2::constants::num_joints>;
+using PositionSetpoints = std::array<float, go2::constants::num_joints>;
 using Trajectory = std::vector<PositionSetpoints>;
 using Dataset = std::vector<Trajectory>;
 
@@ -83,7 +86,7 @@ Dataset load_trajectories(const std::string& filename) {
 
             for (int j = 0; j < robot::go2::constants::num_joints; ++j) {
                 if (std::getline(lineStream, cell, ','))
-                    q[j] = std::stod(cell);
+                    q[j] = std::stof(cell);
                 else
                     throw std::runtime_error("Row missing column " + std::to_string(j));
             }
@@ -97,10 +100,10 @@ Dataset load_trajectories(const std::string& filename) {
 }
 
 
-PositionSetpoints interpolate(const PositionSetpoints& start, const PositionSetpoints& end, double alpha) {
+PositionSetpoints interpolate(const PositionSetpoints& start, const PositionSetpoints& end, float alpha) {
     PositionSetpoints result;
-    for (size_t i = 0; i < result.size(); ++i) {
-        result[i] = start[i] * (1.0 - alpha) + end[i] * alpha;
+    for (std::size_t i = 0; i < result.size(); ++i) {
+        result[i] = start[i] * (1.0f - alpha) + end[i] * alpha;
     }
     return result;
 }
@@ -137,7 +140,7 @@ int main(int argc, char * argv[]) {
     auto RobotDriver = std::make_shared<Go2Driver>();
 
     // Initialize the thread:
-    constexpr size_t control_rate_ms = 20;
+    constexpr std::size_t control_rate_ms = 20;
     result.Update(ControllerDriver->initialize_thread());
     result.Update(RobotDriver->initialize_thread());
     ABSL_CHECK(result.ok()) << result.message();
@@ -158,7 +161,7 @@ int main(int argc, char * argv[]) {
     std::cout << "Starting Control Loop." << std::endl;
     
     bool is_running = true;
-    const int ramp_time_s = 3;
+    const float ramp_time_s = 3.0f;
 
     // Control Parameters:
     constexpr std::array<float, go2::constants::num_joints> kp = go2::constants::default_kp;
@@ -174,15 +177,17 @@ int main(int argc, char * argv[]) {
     converter_options.output_serialization_format = "cdr";
 
     auto writer = std::make_unique<rosbag2_cpp::Writer>();
-    
     if (std::filesystem::exists(storage_options.uri)) {
         std::filesystem::remove_all(storage_options.uri);
     }
     
     writer->open(storage_options, converter_options);
 
-    writer->create_topic({"robot_state", "unitree_go/msg/LowState", "cdr", ""});
-    writer->create_topic({"robot_command", "unitree_go/msg/LowCmd", "cdr", ""});
+    const std::string state_topic = "lowstate";
+    const std::string command_topic = "lowcmd";
+
+    writer->create_topic({state_topic, "unitree_go/msg/LowState", "cdr", ""});
+    writer->create_topic({command_topic, "unitree_go/msg/LowCmd", "cdr", ""});
     
     std::cout << "Bag recording started at: " << storage_options.uri << std::endl;
 
@@ -191,50 +196,53 @@ int main(int argc, char * argv[]) {
         if (!is_running) break;
 
         // Bring Robot to start position of trajectory:
-        auto start_time = std::chrono::steady_clock::now();
+        auto ramp_start_time = std::chrono::steady_clock::now();
         const auto setpoint = trajectory.front();
         auto state = RobotDriver->get_state();
         if (!state) {
-            is_running = false;
             auto damping_command = go2::utilities::damping_command();
             result.Update(RobotDriver->update_command(damping_command));
             std::cerr << "Failed to get the latest state message." << std::endl;
-            break;
+            is_running = false; break;
         }
-        std::array<float, go2::constants::num_joints> current_position;
-        for (size_t i = 0; i < robot::go2::constants::num_joints; ++i)
-            current_position[i] = state->motor_state[i].q;
+        std::array<float, go2::constants::num_joints> start_position;
+        for (std::size_t i = 0; i < robot::go2::constants::num_joints; ++i)
+            start_position[i] = state->motor_state[i].q;
         
 
         // Ramp to start position:
-        while(auto elapsed_time = std::chrono::steady_clock::now() - start_time; elapsed_time < std::chrono::seconds(ramp_time_s)) {
-            if (!is_running) break;
+        while(is_running) {
+            auto now = std::chrono::steady_clock::now();
+            std::chrono::duration<float> elapsed_time = now - ramp_start_time;
+            if (elapsed_time.count() >= ramp_time_s) break;
+
             auto state = RobotDriver->get_state();
             if (!state) {
-                is_running = false;
                 auto damping_command = go2::utilities::damping_command();
                 result.Update(RobotDriver->update_command(damping_command));
                 std::cerr << "Failed to get the latest state message." << std::endl;
-                break;
+                is_running = false; break;
             }
     
             if (ControllerDriver->is_pressed(WirelessControllerDriver::Button::B)) {
                 std::cout << "Setting control mode to DAMPING and Terminating." << std::endl;
-                is_running = false;
                 auto damping_command = go2::utilities::damping_command();
                 result.Update(RobotDriver->update_command(damping_command));
                 ABSL_CHECK(result.ok()) << result.message();
+                is_running = false; break;
             }
 
             // Interpolate towards setpoint:
-            const double alpha = std::min(static_cast<double>(elapsed_time.count()) / ramp_time_s, 1.0);
+            const float alpha = std::clamp(
+                elapsed_time.count() / ramp_time_s, 0.0f, 1.0f
+            );
             const auto interpolated_setpoint = interpolate(
-                current_position, setpoint, alpha
+                start_position, setpoint, alpha
             );
 
             // Create and send position command:
             auto position_command = go2::utilities::default_position_command();
-            for (size_t i = 0; i < robot::go2::constants::num_joints; ++i) {
+            for (std::size_t i = 0; i < robot::go2::constants::num_joints; ++i) {
                 auto& motor_command = position_command.motor_cmd[i];
                 motor_command.q = interpolated_setpoint[i];
                 motor_command.kp = kp[i];
@@ -249,43 +257,42 @@ int main(int argc, char * argv[]) {
         // Iterate over position setpoints in the trajectory:
         for (const auto& setpoint : trajectory) {
             if (!is_running) break;
+
             auto bag_timestamp = rclcpp::Clock().now();
-            auto start_time = std::chrono::steady_clock::now();
+            auto loop_start_time = std::chrono::steady_clock::now();
+
             auto state = RobotDriver->get_state();
-            
             if (state) {
-                writer->write(*state, "state", bag_timestamp);
+                writer->write(*state, state_topic, bag_timestamp);
             }
             else {
-                is_running = false;
                 auto damping_command = go2::utilities::damping_command();
                 result.Update(RobotDriver->update_command(damping_command));
                 std::cerr << "Failed to get the latest state message." << std::endl;
-                break;
+                is_running = false; break;
             }
 
             if (ControllerDriver->is_pressed(WirelessControllerDriver::Button::B)) {
                 std::cout << "Setting control mode to DAMPING and Terminating." << std::endl;
-                is_running = false;
                 auto damping_command = go2::utilities::damping_command();
                 result.Update(RobotDriver->update_command(damping_command));
                 ABSL_CHECK(result.ok()) << result.message();
-                break;
+                is_running = false; break;
             }
             
             auto position_command = go2::utilities::default_position_command();
-            for (size_t i = 0; i < robot::go2::constants::num_joints; ++i) {
+            for (std::size_t i = 0; i < robot::go2::constants::num_joints; ++i) {
                 auto& motor_command = position_command.motor_cmd[i];
                 motor_command.q = setpoint[i];
                 motor_command.kp = kp[i];
                 motor_command.kd = kd[i];
             }
 
-            writer->write(position_command, "robot_command", bag_timestamp);
+            writer->write(position_command, command_topic, bag_timestamp);
             result.Update(RobotDriver->update_command(position_command));
             ABSL_CHECK(result.ok()) << result.message();
 
-            auto elapsed_time = std::chrono::steady_clock::now() - start_time;
+            auto elapsed_time = std::chrono::steady_clock::now() - loop_start_time;
             if (elapsed_time < std::chrono::milliseconds(control_rate_ms))
                 std::this_thread::sleep_for(std::chrono::milliseconds(control_rate_ms) - elapsed_time);
             else
