@@ -59,7 +59,7 @@ int main(int argc, char * argv[]) {
     );
 
     std::filesystem::path onnx_model_path = 
-        runfiles->Rlocation("orl-robot-drivers/onnx_models/velocity_control/warm-shape-9.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/velocity_control/pious-grass-12_jax.onnx");
     
     absl::Status result;
     auto ControllerDriver = std::make_shared<WirelessControllerDriver>();

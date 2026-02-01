@@ -41,8 +41,7 @@ ros2_cpp_binary(
     name = "parse_bag",
     srcs = ["parse_bag.cc"],
     data = [
-        "//tools/bags:vicon_data",
-        "//tools/bags:robot_data",
+        "//tools/bags:data",
     ],
     deps = [
         "//src/go2/lib/utils:constants",

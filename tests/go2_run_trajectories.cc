@@ -169,7 +169,11 @@ int main(int argc, char * argv[]) {
 
     // Setup ROS2 Bag Writer:
     rosbag2_storage::StorageOptions storage_options;
-    storage_options.uri = "bags/experiment_data";
+
+    if (filename.ends_with(".csv")) {
+        filename = filename.substr(0, filename.length() - 4);
+    }
+    storage_options.uri = "bags/" + filename;
     storage_options.storage_id = "sqlite3";
 
     rosbag2_cpp::ConverterOptions converter_options;
@@ -265,6 +269,9 @@ int main(int argc, char * argv[]) {
 
             std::this_thread::sleep_for(std::chrono::milliseconds(control_rate_ms));
         }
+        
+        // Sleep for a short duration to stabilize:
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
         // Iterate over position setpoints in the trajectory:
         for (const auto& setpoint : trajectory) {

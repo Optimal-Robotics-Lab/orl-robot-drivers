@@ -1,11 +1,17 @@
 filegroup(
     name = "vicon_data",
-    srcs = glob(["vicon_bag/*"]),
+    srcs = glob(["vicon_bag/*"], allow_empty=True),
     visibility = ["//visibility:public"],
 )
 
 filegroup(
     name = "robot_data",
-    srcs = glob(["robot_bag/*"]),
+    srcs = glob(["robot_bag/*"], allow_empty=True),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "data",
+    srcs = glob(["**/*"]),
     visibility = ["//visibility:public"],
 )
