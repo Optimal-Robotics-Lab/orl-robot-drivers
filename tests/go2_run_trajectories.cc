@@ -208,8 +208,11 @@ int main(int argc, char * argv[]) {
     }
 
     // Iterate over trajectories:
+    size_t iter = 1;
     for (const auto& trajectory : trajectories) {
         if (!is_running) break;
+
+        std::cout << "Test: " << iter << std::endl;
 
         // Bring Robot to start position of trajectory:
         auto ramp_start_time = std::chrono::steady_clock::now();
@@ -320,6 +323,7 @@ int main(int argc, char * argv[]) {
 
         // Small pause between trajectories to let the system stabilize:
         std::this_thread::sleep_for(std::chrono::seconds(1));
+        iter++;
     }
 
     std::cout << "Control loop exited. Putting robot into a safe state..." << std::endl;
