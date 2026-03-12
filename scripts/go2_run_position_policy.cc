@@ -59,7 +59,7 @@ int main(int argc, char * argv[]) {
     );
 
     std::filesystem::path onnx_model_path = 
-        runfiles->Rlocation("orl-robot-drivers/onnx_models/position_control/serene-tree-61.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/position_control/playful-dream-24_jax.onnx");
     
     absl::Status result;
     auto ControllerDriver = std::make_shared<WirelessControllerDriver>();
@@ -102,7 +102,6 @@ int main(int argc, char * argv[]) {
     
     bool is_running = true;
     float master_gain = 0.0f;
-    auto policy_start_time = std::chrono::steady_clock::now();
     while (!stop_token.stop_requested() && is_running) {
         auto start_time = std::chrono::steady_clock::now();
 
@@ -116,7 +115,6 @@ int main(int argc, char * argv[]) {
                 std::cout << "Setting control mode to POLICY." << std::endl;
                 result.Update(PolicyDriver->set_control_mode(go2::constants::HighLevelControlMode::POLICY));
                 ABSL_CHECK(result.ok()) << result.message();
-                policy_start_time = std::chrono::steady_clock::now();
             }
 
             if (ControllerDriver->is_pressed(WirelessControllerDriver::Button::B)) {
@@ -163,69 +161,15 @@ int main(int argc, char * argv[]) {
             float x_scale = 1.5f;
             float y_scale = 1.0f;
             float z_scale = 3.0f;
+            
+            // Slow Control:
+            // float x_scale = 1.5f;
+            // float y_scale = 1.0f;
+            // float z_scale = 1.2f;
 
-            auto x = 0.0f;
-            auto y = 0.0f;
-            auto z = 0.0f;
-
-            if (PolicyDriver->get_control_mode() == go2::constants::HighLevelControlMode::POLICY) {
-                auto elapsed_policy_time = std::chrono::steady_clock::now() - policy_start_time;
-
-                // Test Forward and Backward Movement:
-                if (elapsed_policy_time < std::chrono::seconds(2)) {
-                    x = 1.0f;
-                    y = 0.0f;
-                    z = 0.0f;
-                }
-                if (elapsed_policy_time < std::chrono::seconds(4) && elapsed_policy_time >= std::chrono::seconds(2)) {
-                    x = -1.0f;
-                    y = 0.0f;
-                    z = 0.0f;
-                }
-
-                // Test Lateral Movement:
-                if (elapsed_policy_time < std::chrono::seconds(6) && elapsed_policy_time >= std::chrono::seconds(5)) {
-                    x = 0.0f;
-                    y = 1.0f;
-                    z = 0.0f;
-                }
-                if (elapsed_policy_time < std::chrono::seconds(8) && elapsed_policy_time >= std::chrono::seconds(7)) {
-                    x = 0.0f;
-                    y = -1.0f;
-                    z = 0.0f;
-                }
-
-                // Test Rotation:
-                if (elapsed_policy_time < std::chrono::seconds(14) && elapsed_policy_time >= std::chrono::seconds(10)) {
-                    x = 0.0f;
-                    y = 0.0f;
-                    z = 1.5f;
-                }
-                if (elapsed_policy_time < std::chrono::seconds(19) && elapsed_policy_time >= std::chrono::seconds(15)) {
-                    x = 0.0f;
-                    y = 0.0f;
-                    z = -1.5f;
-                }
-
-                // // Test Combined Movement:
-                // if (elapsed_policy_time < std::chrono::seconds(14) && elapsed_policy_time >= std::chrono::seconds(12)) {
-                //     x = 1.0f;
-                //     y = 0.5f;
-                //     z = 1.0f;
-                // }
-                // if (elapsed_policy_time < std::chrono::seconds(16) && elapsed_policy_time >= std::chrono::seconds(14)) {
-                //     x = -1.0f;
-                //     y = -0.5f;
-                //     z = -1.0f;
-                // }
-
-                // if (elapsed_policy_time >= std::chrono::seconds(16)) {
-                //     x = 0.0f;
-                //     y = 0.0f;
-                //     z = 0.0f;
-                // }
-            }
-
+            float x = x_scale * ControllerDriver->get_left_stick_y();
+            float y = -1.0f * y_scale * ControllerDriver->get_left_stick_x();
+            float z = -1.0f * z_scale * ControllerDriver->get_right_stick_x();
 
             if (PolicyDriver->get_control_mode() == go2::constants::HighLevelControlMode::POLICY) {
                 result.Update(PolicyDriver->set_command(constants::Vector3<float>(x, y, z)));

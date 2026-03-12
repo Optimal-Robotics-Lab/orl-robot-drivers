@@ -1,7 +1,31 @@
 filegroup(
-    name = "onnx_models",
+    name = "position_control_models",
     srcs = glob([
-        "*.onnx",
+        "position_control/*.onnx",
+    ]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "velocity_control_models",
+    srcs = glob([
+        "velocity_control/*.onnx",
+    ]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "handstand_models",
+    srcs = glob([
+        "handstand/*.onnx",
+    ]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "legacy_models",
+    srcs = glob([
+        "legacy/*.onnx",
     ]),
     visibility = ["//visibility:public"],
 )

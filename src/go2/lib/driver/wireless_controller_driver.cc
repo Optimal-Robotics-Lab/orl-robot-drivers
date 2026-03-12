@@ -31,7 +31,7 @@ WirelessControllerDriver::WirelessControllerDriver() : Node("wireless_controller
     subscription_ = this->create_subscription<unitree_go::msg::WirelessController>(
         "/wirelesscontroller",
         qos_profile,
-        [this](const unitree_go::msg::WirelessController::SharedPtr msg) {
+        [this](std::shared_ptr<const unitree_go::msg::WirelessController> msg) {
             this->callback(msg);
         }
     );
@@ -68,7 +68,7 @@ absl::Status WirelessControllerDriver::stop_thread() {
     return absl::OkStatus();
 }
 
-void WirelessControllerDriver::callback(const unitree_go::msg::WirelessController::SharedPtr msg) {
+void WirelessControllerDriver::callback(const unitree_go::msg::WirelessController::ConstSharedPtr msg) {
     const std::lock_guard<std::mutex> lock(mutex_);
 
     button_value_ = msg->keys;

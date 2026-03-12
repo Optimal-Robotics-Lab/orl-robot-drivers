@@ -1,0 +1,17 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@com_github_mvukov_rules_ros2//ros2:cc_defs.bzl", "ros2_cpp_library")
+
+ros2_cpp_library(
+    name = "lowlevelapi_driver",
+    srcs = ["lowlevelapi_driver.cc"],
+    hdrs = ["lowlevelapi_driver.h"],
+    deps = [
+        "//src/digit/msgs:digit_msgs",
+        "//src/digit/lib/utils:constants",
+        "//src/digit/lib/utils:utilities",
+        "@agility-lowlevelapi//:lowlevelapi",
+        "@ros2_rclcpp//:rclcpp",
+        "@abseil-cpp//absl/status:status",
+    ],
+    visibility = ["//visibility:public"],
+)

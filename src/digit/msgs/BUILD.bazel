@@ -1,0 +1,38 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load(
+    "@com_github_mvukov_rules_ros2//ros2:interfaces.bzl",
+    "ros2_interface_library",
+    "cpp_ros2_interface_library",
+    "py_ros2_interface_library",
+)
+
+ros2_interface_library(
+    name = "digit_interface",
+    srcs = glob(["*.msg"]),
+    deps = [
+        "@ros2_common_interfaces//:std_msgs",
+        "@ros2_rcl_interfaces//:builtin_interfaces",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cpp_ros2_interface_library(
+    name = "cc_digit_msgs",
+    deps = [":digit_interface"],
+    visibility = ["//visibility:public"],
+)
+
+py_ros2_interface_library(
+    name = "py_digit_msgs",
+    deps = [":digit_interface"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "digit_msgs",
+    srcs = ["digit_msgs.h"],
+    deps = [
+        ":cc_digit_msgs",
+    ],
+    visibility = ["//visibility:public"],
+)
