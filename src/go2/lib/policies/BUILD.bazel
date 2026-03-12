@@ -15,7 +15,7 @@ ros2_cpp_library(
         "@ros2_rclcpp//:rclcpp",
         "@ros2_common_interfaces//:cpp_std_msgs",
         "@ros2_common_interfaces//:cpp_geometry_msgs",
-        "@ros2_common_interfaces//:nav_msgs_cpp",
+        "@ros2_common_interfaces//:cpp_nav_msgs",
         "@abseil-cpp//absl/status:status",
         "@abseil-cpp//absl/log:absl_check",
     ],
