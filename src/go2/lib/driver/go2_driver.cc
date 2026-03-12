@@ -46,6 +46,15 @@ Go2Driver::Go2Driver() : Node("go2_driver") {
         qos_profile
     );
 
+    // Create State Estimator Subscriber Node:
+    state_estimator_subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        "/odometry/filtered",
+        qos_profile,
+        [this](std::shared_ptr<const nav_msgs::msg::Odometry> msg) {
+            this->state_estimator_callback(msg);
+        }
+    );
+
     this->initialize_command();
 }
 
@@ -131,6 +140,14 @@ std::optional<Go2State> Go2Driver::get_state() {
     return *latest_state_message;
 }
 
+std::optional<nav_msgs::msg::Odometry> Go2Driver::get_state_estimation() {
+    std::lock_guard<std::mutex> lock(state_estimator_mutex);
+    if (!latest_state_estimator_message)
+        return std::nullopt;
+    
+    return *latest_state_estimator_message;
+}
+
 absl::Status Go2Driver::update_command(const Go2Command& new_command) {
     std::lock_guard<std::mutex> lock(command_mutex);
 
@@ -165,6 +182,15 @@ void Go2Driver::initialize_command() {
     command = robot::go2::utilities::default_position_command();
 }
 
+bool Go2Driver::feet_in_contact() {
+    auto state = get_state();
+    if (!state) return false;
+
+    return std::ranges::all_of(state->foot_force, [](int16_t force) {
+        return force >= 20;
+    });
+}
+
 void Go2Driver::state_callback(const Go2State::ConstSharedPtr msg) {
     std::lock_guard<std::mutex> lock(state_mutex);
     latest_state_message = msg;
@@ -183,4 +209,10 @@ void Go2Driver::command_callback() {
     }
 
     command_publisher_->publish(command_to_publish);
+}
+
+void Go2Driver::state_estimator_callback(const nav_msgs::msg::Odometry::ConstSharedPtr msg) {
+    std::lock_guard<std::mutex> lock(state_estimator_mutex);
+    latest_state_estimator_message = msg;
+    state_estimation_received_.store(true, std::memory_order_relaxed);
 }

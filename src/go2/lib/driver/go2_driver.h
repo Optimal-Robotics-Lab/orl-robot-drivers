@@ -10,6 +10,7 @@
 #include "rclcpp/rclcpp.hpp"
 
 #include "src/go2/msgs/unitree_go_msgs.h"
+#include "nav_msgs/msg/odometry.hpp"
 
 
 using Go2State = unitree_go::msg::LowState;
@@ -60,6 +61,26 @@ class Go2Driver : public rclcpp::Node {
         std::optional<Go2State> get_state();
 
         /**
+         * @brief Gets the latest odometry information from the Invariant EKF State Estimator.
+         * @return std::optional<nav_msgs::msg::Odometry> The latest odometry information, or std::nullopt if no state message has been received or an error occurred.
+         */
+        [[nodiscard]] std::optional<nav_msgs::msg::Odometry> get_state_estimation();
+
+        /**
+         * @brief Validates if the robot has all feet on the ground based on the low-level state.
+         * Required to start the State Estimator.
+         */
+        [[nodiscard]] bool feet_in_contact();
+
+        /**
+         * @brief Checks if the state estimation is available.
+         * @return true if state estimation is available, false otherwise.
+         */
+        [[nodiscard]] bool has_state_estimation() const {
+            return state_estimation_received_.load(std::memory_order_relaxed);
+        }
+
+        /**
          * @brief Updates the command to be sent to the robot.
          * @param new_command The new command to send.
          * @return absl::Status OkStatus on success, or an error if the command is invalid.
@@ -93,6 +114,12 @@ class Go2Driver : public rclcpp::Node {
          * @param msg The received Go2State message.
          */
         void state_callback(const Go2State::ConstSharedPtr msg);
+        
+        /**
+         * @brief Callback function for the state estimator subscriber.
+         * @param msg The received Odometry message.
+         */
+        void state_estimator_callback(const nav_msgs::msg::Odometry::ConstSharedPtr msg);
 
         /**
          * @brief Callback function for the command publishing timer.
@@ -102,6 +129,7 @@ class Go2Driver : public rclcpp::Node {
         // ROS 2 Subscriber, Publisher, and Timer:
         rclcpp::Subscription<Go2State>::SharedPtr state_subscription_;
         rclcpp::Publisher<Go2Command>::SharedPtr command_publisher_;
+        rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr state_estimator_subscription_;
         rclcpp::TimerBase::SharedPtr timer_;
 
         // Go2 State:
@@ -111,6 +139,11 @@ class Go2Driver : public rclcpp::Node {
         // Go2 Command:
         std::mutex command_mutex;
         Go2Command command;
+
+        // Go2 State Estimation:
+        std::mutex state_estimator_mutex;
+        nav_msgs::msg::Odometry::ConstSharedPtr latest_state_estimator_message;
+        std::atomic<bool> state_estimation_received_{false};
 
         // ROS2 Thread Executor:
         rclcpp::executors::MultiThreadedExecutor executor;

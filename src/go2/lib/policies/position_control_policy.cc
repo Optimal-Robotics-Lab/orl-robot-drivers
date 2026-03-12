@@ -124,10 +124,21 @@ absl::Status PositionControlPolicy::make_observation() {
     if (!state)
         return absl::InternalError("[Position Control Policy Interface] [make_observation]: Failed to get state from Unitree driver");
 
+    std::optional<nav_msgs::msg::Odometry> state_estimation = unitree_driver->get_state_estimation();
+    if (!state_estimation)
+        return absl::InternalError("[Position Control Policy Interface] [make_observation]: Failed to get state estimation from Unitree driver");
+
     // Get Measurements from the state:
+    const auto& linear_velocity = state_estimation->twist.twist.linear;
     const auto& imu_state = state->imu_state;
     const auto& motor_state = state->motor_state;
+    const auto& foot_force = state->foot_force;
 
+    constants::Vector3<float> linear_velocity_measurement(
+        static_cast<float>(linear_velocity.x),
+        static_cast<float>(linear_velocity.y),
+        static_cast<float>(linear_velocity.z)
+    );
     constants::Vector3<float> accelerometer_measurement = Eigen::Map<const constants::Vector3<float>>(imu_state.accelerometer.data());
     constants::Vector3<float> gyroscope_measurement = Eigen::Map<const constants::Vector3<float>>(imu_state.gyroscope.data());
     constants::Vector4<float> quaternion_measurement = Eigen::Map<const constants::Vector4<float>>(imu_state.quaternion.data());
@@ -137,6 +148,10 @@ absl::Status PositionControlPolicy::make_observation() {
         joint_positions(i) = motor_state[i].q;
         joint_velocities(i) = motor_state[i].dq;
     }
+
+    // Contact Mask:
+    Eigen::Map<const Eigen::Matrix<int16_t, 4, 1>> force_map(foot_force.data());
+    Eigen::Vector4f contact_mask = (force_map.array() >= 20).cast<float>();
 
     // Previous Actions:
     const auto& policy_output = onnx_driver->get_policy_output();
@@ -153,10 +168,12 @@ absl::Status PositionControlPolicy::make_observation() {
     // Set Observation:
     Eigen::Vector<float, Eigen::Dynamic> observation;
     observation.resize(onnx_driver->get_input_tensor_size());
-    observation << gyroscope_measurement,
+    observation << linear_velocity_measurement,
+                    gyroscope_measurement,
                     projected_gravity,
                     joint_positions - default_position,
                     joint_velocities,
+                    contact_mask,
                     previous_actions,
                     command;
 
@@ -222,8 +239,19 @@ void PositionControlPolicy::policy_callback() {
             command = go2::utilities::damping_command();
             break;
         case go2::constants::HighLevelControlMode::POLICY:
-            command = this->policy_command();
-            break;
+            if (!unitree_driver->has_state_estimation()) {
+                RCLCPP_WARN_THROTTLE(
+                    this->get_logger(), 
+                    *this->get_clock(), 
+                    1000, 
+                    "[Position Control Policy] Safety violation: EKF not publishing. Falling back to DAMPING."
+                );
+                command = go2::utilities::damping_command();
+                control_mode = go2::constants::HighLevelControlMode::DAMPING;
+            }
+            else {
+                command = this->policy_command();
+            }
         case go2::constants::HighLevelControlMode::DISABLE:
             command = go2::utilities::disable_command();
             break;
