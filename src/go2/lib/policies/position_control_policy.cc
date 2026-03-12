@@ -252,6 +252,7 @@ void PositionControlPolicy::policy_callback() {
             else {
                 command = this->policy_command();
             }
+            break;
         case go2::constants::HighLevelControlMode::DISABLE:
             command = go2::utilities::disable_command();
             break;
