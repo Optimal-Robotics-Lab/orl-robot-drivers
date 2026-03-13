@@ -59,7 +59,7 @@ int main(int argc, char * argv[]) {
     );
 
     std::filesystem::path onnx_model_path = 
-        runfiles->Rlocation("orl-robot-drivers/onnx_models/position_control/revived-plant-12_jax.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/position_control/lilac-resonance-8_jax.onnx");
     
     absl::Status result;
     auto ControllerDriver = std::make_shared<WirelessControllerDriver>();
@@ -97,12 +97,11 @@ int main(int argc, char * argv[]) {
     result.Update(PolicyDriver->initialize());
     ABSL_CHECK(result.ok()) << result.message();
 
-    // Control Loop:
-    std::cout << "Starting Control Loop." << std::endl;
-    
-    bool is_running = true;
+    // Setup:
+    bool is_startup = true;
+    bool end_test = false;
     float master_gain = 0.0f;
-    while (!stop_token.stop_requested() && is_running) {
+    while (is_startup) {
         auto start_time = std::chrono::steady_clock::now();
 
         auto state = RobotDriver->get_state();
@@ -114,12 +113,15 @@ int main(int argc, char * argv[]) {
             if (ControllerDriver->is_pressed(WirelessControllerDriver::Button::A)) {
                 std::cout << "Setting control mode to POLICY." << std::endl;
                 result.Update(PolicyDriver->set_control_mode(go2::constants::HighLevelControlMode::POLICY));
+                is_startup = false;
                 ABSL_CHECK(result.ok()) << result.message();
             }
 
             if (ControllerDriver->is_pressed(WirelessControllerDriver::Button::B)) {
                 std::cout << "Setting control mode to DAMPING." << std::endl;
                 master_gain = 0.0f;
+                is_startup = false;
+                end_test = true;
                 result.Update(PolicyDriver->set_master_gain(master_gain));
                 result.Update(PolicyDriver->set_control_mode(go2::constants::HighLevelControlMode::DAMPING));
                 ABSL_CHECK(result.ok()) << result.message();
@@ -135,7 +137,8 @@ int main(int argc, char * argv[]) {
 
             if (ControllerDriver->is_pressed(WirelessControllerDriver::Button::SELECT)) {
                 std::cout << "Select button pressed, stopping control loop." << std::endl;
-                is_running = false;
+                is_startup = false;
+                end_test = true;
                 result.Update(PolicyDriver->set_control_mode(go2::constants::HighLevelControlMode::DAMPING));
                 master_gain = 0.0f;
                 ABSL_CHECK(result.ok()) << result.message();
@@ -157,22 +160,9 @@ int main(int argc, char * argv[]) {
                 ABSL_CHECK(result.ok()) << result.message();
             }
             
-            // Fast Control:
-            float x_scale = 1.5f;
-            float y_scale = 1.0f;
-            float z_scale = 3.0f;
             
-            // Slow Control:
-            // float x_scale = 1.5f;
-            // float y_scale = 1.0f;
-            // float z_scale = 1.2f;
-
-            float x = x_scale * ControllerDriver->get_left_stick_y();
-            float y = -1.0f * y_scale * ControllerDriver->get_left_stick_x();
-            float z = -1.0f * z_scale * ControllerDriver->get_right_stick_x();
-
             if (PolicyDriver->get_control_mode() == go2::constants::HighLevelControlMode::POLICY) {
-                result.Update(PolicyDriver->set_command(constants::Vector3<float>(x, y, z)));
+                result.Update(PolicyDriver->set_command(constants::Vector3<float>(0.0f, 0.0f, 0.0f)));
                 ABSL_CHECK(result.ok()) << result.message();
             }
 
@@ -183,6 +173,76 @@ int main(int argc, char * argv[]) {
             std::this_thread::sleep_for(std::chrono::milliseconds(control_rate_ms) - elapsed_time);
         else
             std::cout << "Warning: Loop took longer than expected, skipping sleep." << std::endl;
+    }
+
+    // Control Loop:
+    std::cout << "Starting Control Loop." << std::endl;
+    
+    // Run Open Loop Control Test:
+    bool is_running = true;
+    std::chrono::seconds test_duration(5);
+    auto test_start_time = std::chrono::steady_clock::now();
+    while (std::chrono::steady_clock::now() - test_start_time < test_duration && is_running && !end_test) {
+        auto start_time = std::chrono::steady_clock::now();
+
+        auto state = RobotDriver->get_state();
+        if (!state) {
+            std::cerr << "Failed to get the latest state message." << std::endl;
+            continue;
+        }
+        else {
+            if (ControllerDriver->is_pressed(WirelessControllerDriver::Button::B)) {
+                std::cout << "Setting control mode to DAMPING." << std::endl;
+                master_gain = 0.0f;
+                is_running = false;
+                end_test = true;
+                result.Update(PolicyDriver->set_master_gain(master_gain));
+                result.Update(PolicyDriver->set_control_mode(go2::constants::HighLevelControlMode::DAMPING));
+                ABSL_CHECK(result.ok()) << result.message();
+            }
+
+            if (ControllerDriver->is_pressed(WirelessControllerDriver::Button::SELECT)) {
+                std::cout << "Select button pressed, stopping control loop." << std::endl;
+                is_running = false;
+                end_test = true;
+                result.Update(PolicyDriver->set_control_mode(go2::constants::HighLevelControlMode::DAMPING));
+                master_gain = 0.0f;
+                ABSL_CHECK(result.ok()) << result.message();
+            }
+            
+            // Fast Control:
+            float forward_command = 1.5f;
+            float lateral_command = 1.0f;
+            float rotation_command = 3.0f;
+            
+            // Slow Control:
+            // float x_scale = 1.5f;
+            // float y_scale = 1.0f;
+            // float z_scale = 1.2f;
+            
+            if (PolicyDriver->get_control_mode() == go2::constants::HighLevelControlMode::POLICY) {
+                result.Update(PolicyDriver->set_command(constants::Vector3<float>(forward_command, 0.0f, 0.0f)));
+                ABSL_CHECK(result.ok()) << result.message();
+            }
+
+        }
+
+        auto elapsed_time = std::chrono::steady_clock::now() - start_time;
+        if (elapsed_time < std::chrono::milliseconds(control_rate_ms))
+            std::this_thread::sleep_for(std::chrono::milliseconds(control_rate_ms) - elapsed_time);
+        else
+            std::cout << "Warning: Loop took longer than expected, skipping sleep." << std::endl;
+    }
+
+    // Allow to come to a stop:
+    std::chrono::seconds end_duration(3);
+    auto end_start_time = std::chrono::steady_clock::now();
+    while(std::chrono::steady_clock::now() - end_start_time < end_duration && !end_test) {
+        if (PolicyDriver->get_control_mode() == go2::constants::HighLevelControlMode::POLICY) {
+            result.Update(PolicyDriver->set_command(constants::Vector3<float>(0.0f, 0.0f, 0.0f)));
+            ABSL_CHECK(result.ok()) << result.message();
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(control_rate_ms));
     }
 
     std::cout << "Control loop exited. Putting robot into a safe state..." << std::endl;
