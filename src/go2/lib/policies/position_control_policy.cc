@@ -121,11 +121,11 @@ absl::Status PositionControlPolicy::stop_thread() {
 absl::Status PositionControlPolicy::make_observation() {
     // Get Measurements:
     std::optional<Go2State> state = unitree_driver->get_state();
-    if (!state)
+    if (!state) [[unlikely]]
         return absl::InternalError("[Position Control Policy Interface] [make_observation]: Failed to get state from Unitree driver");
 
     std::optional<nav_msgs::msg::Odometry> state_estimation = unitree_driver->get_state_estimation();
-    if (!state_estimation)
+    if (!state_estimation) [[unlikely]]
         return absl::InternalError("[Position Control Policy Interface] [make_observation]: Failed to get state estimation from Unitree driver");
 
     // Get Measurements from the state:
@@ -165,6 +165,9 @@ absl::Status PositionControlPolicy::make_observation() {
     Eigen::Matrix3<float> rotation = quaternion.toRotationMatrix();
     constants::Vector3<float> projected_gravity = rotation.transpose() * constants::Vector3<float>(0.0f, 0.0f, -1.0f);
     
+    // Mutex Locked Getter:
+    const auto cached_command = this->get_command();
+
     // Set Observation:
     Eigen::Vector<float, Eigen::Dynamic> observation;
     observation.resize(onnx_driver->get_input_tensor_size());
@@ -175,11 +178,11 @@ absl::Status PositionControlPolicy::make_observation() {
                     joint_velocities,
                     contact_mask,
                     previous_actions,
-                    command;
+                    cached_command;
 
     // Set Input Tensor:
     absl::Status status = onnx_driver->set_observation(observation);
-    if (!status.ok()) {
+    if (!status.ok()) [[unlikely]] {
         std::string message = std::string(status.message());
         return absl::InternalError("[Position Control Policy Interface] [make_observation]: Failed to set observation in ONNX driver: " + message);
     }
@@ -206,58 +209,64 @@ Go2Command PositionControlPolicy::policy_command() {
 
 void PositionControlPolicy::policy_callback() {
     absl::Status result;
-    std::lock_guard<std::mutex> lock(mutex);
 
-    result.Update(this->make_observation());
-    if (!result.ok()) {
-        std::string message = std::string(result.message());
-        RCLCPP_ERROR(this->get_logger(), "[Position Control Policy Interface] Failed to make observation: %s", message.c_str());
-        std::ignore = unitree_driver->update_command(go2::utilities::damping_command());
-        return;
-    }
+    // Only Inference if State Estimator is publishing:
+    if (unitree_driver->has_state_estimation()) {
+        result.Update(this->make_observation());
+        if (!result.ok()) [[unlikely]] {
+            std::string message = std::string(result.message());
+            RCLCPP_ERROR(this->get_logger(), "[Position Control Policy Interface] Failed to make observation: %s", message.c_str());
+            std::ignore = unitree_driver->update_command(go2::utilities::damping_command());
+            return;
+        }
 
-    result.Update(onnx_driver->inference_policy());
-    if (!result.ok()) {
-        std::string message = std::string(result.message());
-        RCLCPP_ERROR(this->get_logger(), "[Position Control Policy Interface] Failed to run policy inference: %s", message.c_str());
-        std::ignore = unitree_driver->update_command(go2::utilities::damping_command());
-        return;
+        result.Update(onnx_driver->inference_policy());
+        if (!result.ok()) [[unlikely]] {
+            std::string message = std::string(result.message());
+            RCLCPP_ERROR(this->get_logger(), "[Position Control Policy Interface] Failed to run policy inference: %s", message.c_str());
+            std::ignore = unitree_driver->update_command(go2::utilities::damping_command());
+            return;
+        }
     }
 
     // Get Motor Command:
     Go2Command command;
-    switch (control_mode) {
-        case go2::constants::HighLevelControlMode::DEFAULT:
-            command = go2::utilities::default_position_command();
-            for (size_t i = 0; i < go2::constants::num_joints; ++i) {
-                auto& motor_command = command.motor_cmd[i];
-                motor_command.kp = master_gain * kp[i];
-                motor_command.kd = kd[i];
-            }
-            break;
-        case go2::constants::HighLevelControlMode::DAMPING:
-            command = go2::utilities::damping_command();
-            break;
-        case go2::constants::HighLevelControlMode::POLICY:
-            if (!unitree_driver->has_state_estimation()) {
-                RCLCPP_WARN_THROTTLE(
-                    this->get_logger(), 
-                    *this->get_clock(), 
-                    1000, 
-                    "[Position Control Policy] Safety violation: EKF not publishing. Falling back to DAMPING."
-                );
+
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        switch (control_mode) {
+            case go2::constants::HighLevelControlMode::DEFAULT:
+                command = go2::utilities::default_position_command();
+                for (size_t i = 0; i < go2::constants::num_joints; ++i) {
+                    auto& motor_command = command.motor_cmd[i];
+                    motor_command.kp = master_gain * kp[i];
+                    motor_command.kd = kd[i];
+                }
+                break;
+            case go2::constants::HighLevelControlMode::DAMPING:
                 command = go2::utilities::damping_command();
-                control_mode = go2::constants::HighLevelControlMode::DAMPING;
-            }
-            else {
-                command = this->policy_command();
-            }
-            break;
-        case go2::constants::HighLevelControlMode::DISABLE:
-            command = go2::utilities::disable_command();
-            break;
-        case go2::constants::HighLevelControlMode::INACTIVE:
-            return;
+                break;
+            case go2::constants::HighLevelControlMode::POLICY:
+                if (!unitree_driver->has_state_estimation()) {
+                    RCLCPP_WARN_THROTTLE(
+                        this->get_logger(), 
+                        *this->get_clock(), 
+                        1000, 
+                        "[Position Control Policy] Safety violation: State Estimator not publishing. Falling back to DAMPING."
+                    );
+                    command = go2::utilities::damping_command();
+                    control_mode = go2::constants::HighLevelControlMode::DAMPING;
+                }
+                else {
+                    command = this->policy_command();
+                }
+                break;
+            case go2::constants::HighLevelControlMode::DISABLE:
+                command = go2::utilities::disable_command();
+                break;
+            case go2::constants::HighLevelControlMode::INACTIVE:
+                return;
+        }
     }
 
     // Send Motor Command:

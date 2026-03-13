@@ -92,7 +92,7 @@ class PositionControlPolicy : public rclcpp::Node {
             std::lock_guard<std::mutex> lock(mutex);
             
             if (mode == go2::constants::HighLevelControlMode::POLICY) {
-                if (!unitree_driver->get_state_estimation().has_value()) {
+                if (!unitree_driver->has_state_estimation()) {
                     return absl::FailedPreconditionError(
                         "[Position Control Policy] Cannot switch to POLICY: EKF odometry is not yet publishing."
                     );
@@ -118,16 +118,18 @@ class PositionControlPolicy : public rclcpp::Node {
          * @return absl::Status OkStatus on success, or an error if the command is invalid.
          */
         absl::Status set_command(const Vector3<float>& new_command) {
-            std::lock_guard<std::mutex> lock(mutex);
-            command = new_command;
-            
-        if (policy_command_publisher_) {
-            geometry_msgs::msg::Vector3 command_msg;
-            command_msg.x = command(0);
-            command_msg.y = command(1);
-            command_msg.z = command(2);
-            policy_command_publisher_->publish(command_msg);
-        }
+            {
+                std::lock_guard<std::mutex> lock(mutex);
+                command = new_command;
+            }
+
+            if (policy_command_publisher_) {
+                geometry_msgs::msg::Vector3 command_msg;
+                command_msg.x = command(0);
+                command_msg.y = command(1);
+                command_msg.z = command(2);
+                policy_command_publisher_->publish(command_msg);
+            }
 
             return absl::OkStatus();
         };
@@ -138,8 +140,10 @@ class PositionControlPolicy : public rclcpp::Node {
          * @return absl::Status OkStatus on success, or an error if the command is invalid.
          */
         absl::Status set_command(const std::array<float, 3>& new_command) {
-            std::lock_guard<std::mutex> lock(mutex);
-            command = Eigen::Map<const constants::Vector3<float>>(new_command.data());
+            {
+                std::lock_guard<std::mutex> lock(mutex);
+                command = Eigen::Map<const constants::Vector3<float>>(new_command.data());
+            }
 
             if (policy_command_publisher_) {
                 geometry_msgs::msg::Vector3 command_msg;
@@ -169,9 +173,6 @@ class PositionControlPolicy : public rclcpp::Node {
         absl::Status set_master_gain(float gain) {
             std::lock_guard<std::mutex> lock(mutex);
             master_gain = std::clamp(gain, 0.0f, 1.0f);
-            if (master_gain < 0.0f || master_gain > 1.0f) {
-                return absl::InvalidArgumentError("Policy Interface [set_master_gain]: Gain clamped between 0.0 and 1.0.");
-            }
             return absl::OkStatus();
         };
 
