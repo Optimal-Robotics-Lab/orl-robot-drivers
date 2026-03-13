@@ -243,7 +243,7 @@ class PositionControlPolicy : public rclcpp::Node {
 
         // ONNX Variables
         std::filesystem::path onnx_model_path;
-        std::shared_ptr<ONNXDriver> onnx_driver = std::make_shared<ONNXDriver>(onnx_model_path, "WalkingPolicySession");
+        std::shared_ptr<ONNXDriver> onnx_driver;
         
         // Initialization Flags
         bool thread_initialized = false;

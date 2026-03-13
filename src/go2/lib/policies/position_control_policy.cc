@@ -41,6 +41,7 @@ PositionControlPolicy::PositionControlPolicy(
 ) : 
     Node("walking_policy_interface", options),
     onnx_model_path(onnx_model_path),
+    onnx_driver(std::make_shared<ONNXDriver>(onnx_model_path, "WalkingPolicySession")),
     unitree_driver(unitree_driver) {
     // Set Control Rate:
     declare_parameter("control_rate_us", 20000);
