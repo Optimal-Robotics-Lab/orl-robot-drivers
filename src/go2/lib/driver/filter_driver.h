@@ -15,6 +15,7 @@ class Filter {
         // Typedef to map exactly to your MotorVector<float>
         using ActionVector = Eigen::Matrix<float, ActionSize, 1>;
 
+        Filter() = default;
         virtual ~Filter() = default;
 
         // Delete copy semantics to prevent object slicing. Move is allowed.

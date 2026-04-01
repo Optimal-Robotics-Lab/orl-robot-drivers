@@ -30,7 +30,8 @@
 
 using Go2State = unitree_go::msg::LowState;
 using Go2Command = unitree_go::msg::LowCmd;
-using Go2Filter = Filter<go2::constants::num_joints>;
+using Go2Filter = Filter<robot::go2::constants::num_joints>;
+
 using namespace robot;
 using namespace robot::constants;
 
