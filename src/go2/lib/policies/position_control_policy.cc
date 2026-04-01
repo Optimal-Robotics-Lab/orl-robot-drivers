@@ -203,7 +203,7 @@ Go2Command PositionControlPolicy::policy_command() {
     
     const auto actions = Eigen::Map<const go2::constants::MotorVector<float>>(policy_output.data());
     const go2::constants::MotorVector<float> filtered_actions = filter_->apply(actions);
-    const go2::constants::MotorVector<float> position_setpoints = default_position + master_gain * action_scale * filtered_actions;
+    const go2::constants::MotorVector<float> position_setpoints = default_position + master_gain * (action_scale.cwiseProduct(filtered_actions));
 
     Go2Command command = go2::utilities::default_position_command();
 

@@ -270,7 +270,7 @@ class PositionControlPolicy : public rclcpp::Node {
         // Default Command Values
         go2::constants::HighLevelControlMode control_mode = go2::constants::HighLevelControlMode::DAMPING;
         int control_rate_us;
-        const float action_scale = 0.5f;
+        const go2::constants::MotorVector<float> action_scale = Eigen::Map<const go2::constants::MotorVector<float>>(go2::constants::action_scale.data());
         float master_gain = 0.0f;
         const go2::constants::MotorVector<float> default_position = Eigen::Map<const go2::constants::MotorVector<float>>(go2::constants::default_position.data());
         static constexpr std::array<float, go2::constants::num_joints> kp = go2::constants::default_kp;
