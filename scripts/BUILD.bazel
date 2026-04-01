@@ -33,6 +33,7 @@ ros2_cpp_binary(
         "//src/go2/lib/driver:wireless_controller_driver",
         "//src/go2/lib/policies:position_control_policy",
         "//src/go2/lib/driver:go2_driver",
+        "//src/go2/lib/driver:filter_driver",
         "//src/go2/msgs:unitree_go_msgs",
         "@eigen//:eigen",
         "@onnxruntime-bazel//:onnxruntime",

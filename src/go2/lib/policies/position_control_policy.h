@@ -19,6 +19,7 @@
 
 #include "src/go2/lib/driver/onnx_driver.h"
 #include "src/go2/lib/driver/go2_driver.h"
+#include "src/go2/lib/driver/filter_driver.h"
 
 #include "src/utils/constants.h"
 #include "src/go2/lib/utils/constants.h"
@@ -29,6 +30,7 @@
 
 using Go2State = unitree_go::msg::LowState;
 using Go2Command = unitree_go::msg::LowCmd;
+using Go2Filter = Filter<go2::constants::num_joints>;
 using namespace robot;
 using namespace robot::constants;
 
@@ -45,7 +47,8 @@ class PositionControlPolicy : public rclcpp::Node {
         PositionControlPolicy(
             const rclcpp::NodeOptions& options,
             std::filesystem::path onnx_model_path,
-            std::shared_ptr<Go2Driver> unitree_driver
+            std::shared_ptr<Go2Driver> unitree_driver,
+            std::unique_ptr<Go2Filter> filter
         );
 
         /**
@@ -251,6 +254,9 @@ class PositionControlPolicy : public rclcpp::Node {
         
         // Unitree Driver
         std::shared_ptr<Go2Driver> unitree_driver;
+
+        // Action Filter:
+        std::unique_ptr<Go2Filter> filter_;
         
         // Thread Variables
         std::mutex mutex;

@@ -19,6 +19,7 @@
 
 #include "src/go2/lib/driver/onnx_driver.h"
 #include "src/go2/lib/driver/go2_driver.h"
+#include "src/go2/lib/driver/filter_driver.h"
 
 #include "src/utils/constants.h"
 #include "src/go2/lib/utils/constants.h"
@@ -30,6 +31,7 @@
 
 using Go2State = unitree_go::msg::LowState;
 using Go2Command = unitree_go::msg::LowCmd;
+using Go2Filter = Filter<go2::constants::num_joints>;
 using namespace robot;
 using namespace robot::constants;
 
@@ -37,12 +39,14 @@ using namespace robot::constants;
 PositionControlPolicy::PositionControlPolicy(
     const rclcpp::NodeOptions& options,
     std::filesystem::path onnx_model_path,
-    std::shared_ptr<Go2Driver> unitree_driver
+    std::shared_ptr<Go2Driver> unitree_driver,
+    std::unique_ptr<Go2Filter> filter
 ) : 
     Node("walking_policy_interface", options),
     onnx_model_path(onnx_model_path),
     onnx_driver(std::make_shared<ONNXDriver>(onnx_model_path, "WalkingPolicySession")),
-    unitree_driver(unitree_driver) {
+    unitree_driver(unitree_driver),
+    filter_(std::move(filter)) {
     // Set Control Rate:
     declare_parameter("control_rate_us", 20000);
     this->control_rate_us = this->get_parameter("control_rate_us").as_int();
@@ -169,6 +173,9 @@ absl::Status PositionControlPolicy::make_observation() {
     // Mutex Locked Getter:
     const auto cached_command = this->get_command();
 
+    // Get Go2Filter Observation:
+    Eigen::VectorXf filter_observation = filter_->get_observation();
+
     // Set Observation:
     Eigen::Vector<float, Eigen::Dynamic> observation;
     observation.resize(onnx_driver->get_input_tensor_size());
@@ -177,9 +184,9 @@ absl::Status PositionControlPolicy::make_observation() {
                     projected_gravity,
                     joint_positions - default_position,
                     joint_velocities,
-                    contact_mask,
                     previous_actions,
-                    cached_command;
+                    cached_command,
+                    filter_observation;
 
     // Set Input Tensor:
     absl::Status status = onnx_driver->set_observation(observation);
@@ -193,8 +200,10 @@ absl::Status PositionControlPolicy::make_observation() {
 
 Go2Command PositionControlPolicy::policy_command() {
     const auto& policy_output = onnx_driver->get_policy_output();
-    go2::constants::MotorVector<float> actions = Eigen::Map<const go2::constants::MotorVector<float>>(policy_output.data());
-    go2::constants::MotorVector<float> position_setpoints = default_position + master_gain * action_scale * actions;
+    
+    const auto actions = Eigen::Map<const go2::constants::MotorVector<float>>(policy_output.data());
+    const go2::constants::MotorVector<float> filtered_actions = filter_->apply(actions);
+    const go2::constants::MotorVector<float> position_setpoints = default_position + master_gain * action_scale * filtered_actions;
 
     Go2Command command = go2::utilities::default_position_command();
 
