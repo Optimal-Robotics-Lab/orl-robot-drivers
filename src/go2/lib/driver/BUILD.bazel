@@ -24,7 +24,6 @@ ros2_cpp_library(
         "//src/go2/msgs:unitree_go_msgs",
         "@ros2_rclcpp//:rclcpp",
         "@abseil-cpp//absl/status:status",
-        "@ros2_common_interfaces//:cpp_nav_msgs",
     ],
     visibility = ["//visibility:public"],
 )

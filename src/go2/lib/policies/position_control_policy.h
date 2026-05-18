@@ -257,7 +257,7 @@ class PositionControlPolicy : public rclcpp::Node {
         std::shared_ptr<Go2Driver> unitree_driver;
 
         // Action Filter:
-        std::unique_ptr<Go2Filter> filter_;
+        std::unique_ptr<Go2Filter> filter;
         
         // Thread Variables
         std::mutex mutex;

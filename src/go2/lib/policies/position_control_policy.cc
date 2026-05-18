@@ -46,7 +46,7 @@ PositionControlPolicy::PositionControlPolicy(
     onnx_model_path(onnx_model_path),
     onnx_driver(std::make_shared<ONNXDriver>(onnx_model_path, "WalkingPolicySession")),
     unitree_driver(unitree_driver),
-    filter_(std::move(filter)) {
+    filter(std::move(filter)) {
     // Set Control Rate:
     declare_parameter("control_rate_us", 20000);
     this->control_rate_us = this->get_parameter("control_rate_us").as_int();
@@ -129,21 +129,11 @@ absl::Status PositionControlPolicy::make_observation() {
     if (!state) [[unlikely]]
         return absl::InternalError("[Position Control Policy Interface] [make_observation]: Failed to get state from Unitree driver");
 
-    std::optional<nav_msgs::msg::Odometry> state_estimation = unitree_driver->get_state_estimation();
-    if (!state_estimation) [[unlikely]]
-        return absl::InternalError("[Position Control Policy Interface] [make_observation]: Failed to get state estimation from Unitree driver");
-
     // Get Measurements from the state:
-    const auto& linear_velocity = state_estimation->twist.twist.linear;
     const auto& imu_state = state->imu_state;
     const auto& motor_state = state->motor_state;
     const auto& foot_force = state->foot_force;
 
-    constants::Vector3<float> linear_velocity_measurement(
-        static_cast<float>(linear_velocity.x),
-        static_cast<float>(linear_velocity.y),
-        static_cast<float>(linear_velocity.z)
-    );
     constants::Vector3<float> accelerometer_measurement = Eigen::Map<const constants::Vector3<float>>(imu_state.accelerometer.data());
     constants::Vector3<float> gyroscope_measurement = Eigen::Map<const constants::Vector3<float>>(imu_state.gyroscope.data());
     constants::Vector4<float> quaternion_measurement = Eigen::Map<const constants::Vector4<float>>(imu_state.quaternion.data());
@@ -174,13 +164,12 @@ absl::Status PositionControlPolicy::make_observation() {
     const auto cached_command = this->get_command();
 
     // Get Go2Filter Observation:
-    Eigen::VectorXf filter_observation = filter_->get_observation();
+    Eigen::VectorXf filter_observation = filter->get_observation();
 
     // Set Observation:
     Eigen::Vector<float, Eigen::Dynamic> observation;
     observation.resize(onnx_driver->get_input_tensor_size());
-    observation << linear_velocity_measurement,
-                    gyroscope_measurement,
+    observation <<  gyroscope_measurement,
                     projected_gravity,
                     joint_positions - default_position,
                     joint_velocities,
@@ -202,7 +191,7 @@ Go2Command PositionControlPolicy::policy_command() {
     const auto& policy_output = onnx_driver->get_policy_output();
     
     const auto actions = Eigen::Map<const go2::constants::MotorVector<float>>(policy_output.data());
-    const go2::constants::MotorVector<float> filtered_actions = filter_->apply(actions);
+    const go2::constants::MotorVector<float> filtered_actions = filter->apply(actions);
     const go2::constants::MotorVector<float> position_setpoints = default_position + master_gain * (action_scale.cwiseProduct(filtered_actions));
 
     Go2Command command = go2::utilities::default_position_command();
@@ -220,23 +209,20 @@ Go2Command PositionControlPolicy::policy_command() {
 void PositionControlPolicy::policy_callback() {
     absl::Status result;
 
-    // Only Inference if State Estimator is publishing:
-    if (unitree_driver->has_state_estimation()) {
-        result.Update(this->make_observation());
-        if (!result.ok()) [[unlikely]] {
-            std::string message = std::string(result.message());
-            RCLCPP_ERROR(this->get_logger(), "[Position Control Policy Interface] Failed to make observation: %s", message.c_str());
-            std::ignore = unitree_driver->update_command(go2::utilities::damping_command());
-            return;
-        }
+    result.Update(this->make_observation());
+    if (!result.ok()) [[unlikely]] {
+        std::string message = std::string(result.message());
+        RCLCPP_ERROR(this->get_logger(), "[Position Control Policy Interface] Failed to make observation: %s", message.c_str());
+        std::ignore = unitree_driver->update_command(go2::utilities::damping_command());
+        return;
+    }
 
-        result.Update(onnx_driver->inference_policy());
-        if (!result.ok()) [[unlikely]] {
-            std::string message = std::string(result.message());
-            RCLCPP_ERROR(this->get_logger(), "[Position Control Policy Interface] Failed to run policy inference: %s", message.c_str());
-            std::ignore = unitree_driver->update_command(go2::utilities::damping_command());
-            return;
-        }
+    result.Update(onnx_driver->inference_policy());
+    if (!result.ok()) [[unlikely]] {
+        std::string message = std::string(result.message());
+        RCLCPP_ERROR(this->get_logger(), "[Position Control Policy Interface] Failed to run policy inference: %s", message.c_str());
+        std::ignore = unitree_driver->update_command(go2::utilities::damping_command());
+        return;
     }
 
     // Get Motor Command:
@@ -257,19 +243,7 @@ void PositionControlPolicy::policy_callback() {
                 command = go2::utilities::damping_command();
                 break;
             case go2::constants::HighLevelControlMode::POLICY:
-                if (!unitree_driver->has_state_estimation()) {
-                    RCLCPP_WARN_THROTTLE(
-                        this->get_logger(), 
-                        *this->get_clock(), 
-                        1000, 
-                        "[Position Control Policy] Safety violation: State Estimator not publishing. Falling back to DAMPING."
-                    );
-                    command = go2::utilities::damping_command();
-                    control_mode = go2::constants::HighLevelControlMode::DAMPING;
-                }
-                else {
-                    command = this->policy_command();
-                }
+                command = this->policy_command();
                 break;
             case go2::constants::HighLevelControlMode::DISABLE:
                 command = go2::utilities::disable_command();

@@ -129,8 +129,6 @@ namespace robot::go2::constants {
         for (std::size_t i = 0; i < num_joints; ++i) {
             float dist_to_upper = q_ub[i] - default_position[i];
             float dist_to_lower = default_position[i] - q_lb[i];
-            
-            // Element-wise minimum
             scale[i] = (dist_to_upper < dist_to_lower) ? dist_to_upper : dist_to_lower;
         }
         return scale;
