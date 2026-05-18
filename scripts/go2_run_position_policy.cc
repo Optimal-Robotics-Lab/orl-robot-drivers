@@ -86,7 +86,12 @@ int main(int argc, char * argv[]) {
 
     // Initialize ONNX Driver setting Default HighLevelCommandMode and Command:
     constexpr size_t control_rate_ms = 20;
-    auto PolicyDriver = std::make_shared<PositionControlPolicy>(options, onnx_model_path, RobotDriver, std::move(FilterDriver));
+    auto PolicyDriver = std::make_shared<PositionControlPolicy<decltype(FilterDriver)>>(
+        options, 
+        onnx_model_path, 
+        RobotDriver, 
+        std::move(FilterDriver)
+    );
     result.Update(PolicyDriver->initialize_thread());
 
     // Sleep for a while to allow the thread to spin up:
