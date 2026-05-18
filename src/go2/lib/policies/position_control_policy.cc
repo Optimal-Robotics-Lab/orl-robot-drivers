@@ -31,7 +31,7 @@
 
 using Go2State = unitree_go::msg::LowState;
 using Go2Command = unitree_go::msg::LowCmd;
-using Go2Filter = Filter<go2::constants::num_joints>;
+
 using namespace robot;
 using namespace robot::constants;
 
@@ -40,7 +40,7 @@ PositionControlPolicy::PositionControlPolicy(
     const rclcpp::NodeOptions& options,
     std::filesystem::path onnx_model_path,
     std::shared_ptr<Go2Driver> unitree_driver,
-    std::unique_ptr<Go2Filter> filter
+    FilterType filter
 ) : 
     Node("walking_policy_interface", options),
     onnx_model_path(onnx_model_path),

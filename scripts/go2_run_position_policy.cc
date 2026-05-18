@@ -65,7 +65,7 @@ int main(int argc, char * argv[]) {
     absl::Status result;
     auto ControllerDriver = std::make_shared<WirelessControllerDriver>();
     auto RobotDriver = std::make_shared<Go2Driver>();
-    auto FilterDriver = std::make_unique<FirstOrderFilter<go2::constants::num_joints>>(0.33451117073193837f);
+    auto FilterDriver = FirstOrderFilter<go2::constants::num_joints>(0.33451117073193837f);
 
     // Initialize the thread:
     result.Update(ControllerDriver->initialize_thread());

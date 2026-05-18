@@ -5,43 +5,106 @@
 #include <string>
 #include <cstddef>
 
+
 /**
- * @brief Abstract base class for action filters using compile-time dimensions.
- * @tparam ActionSize The size of the action vector output of the policy.
+ * @brief First-order exponential smoothing filter.
  */
 template <std::size_t ActionSize>
-class Filter {
+class FirstOrderFilter {
     public:
-        // Typedef to map exactly to your MotorVector<float>
-        using ActionVector = Eigen::Matrix<float, ActionSize, 1>;
+        using ActionVector = Eigen::Vector<float, ActionSize>;
+        using ObservationVector = Eigen::Vector<float, ActionSize>;
 
-        Filter() = default;
-        virtual ~Filter() = default;
+    private:
+        float alpha;
+        ActionVector last_filtered_action{ActionVector::Zero()};
 
-        // Delete copy semantics to prevent object slicing. Move is allowed.
-        Filter(const Filter&) = delete;
-        Filter& operator=(const Filter&) = delete;
-        Filter(Filter&&) = default;
-        Filter& operator=(Filter&&) = default;
+    public:
+        explicit FirstOrderFilter(float alpha) : alpha(alpha) {
+            if (this->alpha < 0.0f || this->alpha > 1.0f) {
+                throw std::invalid_argument("[FirstOrderFilter] Alpha must be between 0.0 and 1.0.");
+            }
+            this->reset();
+        }
 
-        /**
-        * @brief Resets the internal state of the filter.
-        */
-        virtual void reset() = 0;
+        void reset() {
+            this->last_filtered_action.setZero();
+        }
 
-        /**
-        * @brief Applies the filter to the given action.
-        */
-        [[nodiscard]] virtual ActionVector apply(const ActionVector& action) = 0;
+        [[nodiscard]] ActionVector apply(const ActionVector& action) {
+            this->last_filtered_action = this->alpha * action + (1.0f - this->alpha) * this->last_filtered_action;
+            return this->last_filtered_action;
+        }
 
-        /**
-        * @brief Retrieves the filter history required for the RL observation.
-        * @note Returns a dynamic VectorXf because different filters have different history sizes.
-        */
-        [[nodiscard]] virtual Eigen::VectorXf get_observation() const = 0;
+        [[nodiscard]] ObservationVector get_observation() const {
+            return this->last_filtered_action;
+        }
+        
+        [[nodiscard]] static constexpr std::size_t get_actions_size() {
+            return ActionSize;
+        }
 
-        [[nodiscard]] virtual std::size_t get_observation_size() const {
-            return get_observation().size();
+        [[nodiscard]] static constexpr std::size_t get_observation_size() {
+            return ActionSize;
+        }
+};
+
+/**
+ * @brief Second-order filter.
+ */
+template <std::size_t ActionSize>
+class SecondOrderFilter {
+    public:
+        using ActionVector = Eigen::Vector<float, ActionSize>;
+        using ObservationVector = Eigen::Vector<float, 2 * ActionSize>;
+
+    private:
+        float b0, b1, b2, a1, a2;
+        ActionVector x_t1, x_t2, y_t1, y_t2;
+
+    public:
+        explicit SecondOrderFilter(float b0, float b1, float b2, float a1, float a2)
+            : b0(b0), b1(b1), b2(b2), a1(a1), a2(a2) {
+            this->reset();
+        }
+
+        void reset() {
+            this->x_t1.setZero();
+            this->x_t2.setZero();
+            this->y_t1.setZero();
+            this->y_t2.setZero();
+        }
+
+        [[nodiscard]] ActionVector apply(const ActionVector& action) {
+            ActionVector filtered_action = this->b0 * action 
+                                            + this->b1 * this->x_t1 
+                                            + this->b2 * this->x_t2 
+                                            - this->a1 * this->y_t1 
+                                            - this->a2 * this->y_t2;
+            
+            // Shift history states
+            this->x_t2 = this->x_t1;
+            this->x_t1 = action;
+            this->y_t2 = this->y_t1;
+            this->y_t1 = filtered_action;
+
+            return filtered_action;
+        }
+
+        [[nodiscard]] ObservationVector get_observation() const {
+            auto target_velocity = this->y_t1 - this->y_t2;
+            const auto& previous_filtered_action = this->y_t1;
+            ObservationVector observation;
+            observation << previous_filtered_action, target_velocity;
+            return observation;
+        }
+        
+        [[nodiscard]] static constexpr std::size_t get_actions_size() {
+            return ActionSize;
+        }
+
+        [[nodiscard]] static constexpr std::size_t get_observation_size() {
+            return 2 * ActionSize;
         }
 };
 
@@ -49,102 +112,29 @@ class Filter {
  * @brief No-Op filter that passes actions through unmodified.
  */
 template <std::size_t ActionSize>
-class NoFilter : public Filter<ActionSize> {
+class NoFilter {
     public:
-        using ActionVector = typename Filter<ActionSize>::ActionVector;
+        using ActionVector = Eigen::Vector<float, ActionSize>;
+        using ObservationVector = Eigen::Vector<float, 0>;
 
-        NoFilter() = default;
+    public:
+        explicit NoFilter() = default;
 
-        void reset() override {}
+        void reset() { }
 
-        [[nodiscard]] ActionVector apply(const ActionVector& action) override {
+        [[nodiscard]] ActionVector apply(const ActionVector& action) {
             return action;
         }
 
-        [[nodiscard]] Eigen::VectorXf get_observation() const override {
-            return Eigen::VectorXf(0); // Empty observation
+        [[nodiscard]] ObservationVector get_observation() const {
+            return ObservationVector();
         }
-};
-
-/**
- * @brief First-order exponential smoothing filter.
- */
-template <std::size_t ActionSize>
-class FirstOrderFilter : public Filter<ActionSize> {
-    public:
-        using ActionVector = typename Filter<ActionSize>::ActionVector;
-
-    private:
-        float alpha_;
-        ActionVector last_filtered_action_;
-
-    public:
-        explicit FirstOrderFilter(float alpha) : alpha_(alpha) {
-            if (alpha_ < 0.0f || alpha_ > 1.0f) {
-                throw std::invalid_argument("FirstOrderFilter - Alpha must be between 0.0 and 1.0.");
-            }
-            reset(); 
+        
+        [[nodiscard]] static constexpr std::size_t get_actions_size() {
+            return ActionSize;
         }
 
-        void reset() override {
-            last_filtered_action_.setZero();
-        }
-
-        [[nodiscard]] ActionVector apply(const ActionVector& action) override {
-            last_filtered_action_ = alpha_ * action + (1.0f - alpha_) * last_filtered_action_;
-            return last_filtered_action_;
-        }
-
-        [[nodiscard]] Eigen::VectorXf get_observation() const override {
-            return last_filtered_action_;
-        }
-};
-
-/**
- * @brief Second-order digital filter.
- */
-template <std::size_t ActionSize>
-class SecondOrderFilter : public Filter<ActionSize> {
-    public:
-        using ActionVector = typename Filter<ActionSize>::ActionVector;
-
-    private:
-        float b0_, b1_, b2_, a1_, a2_;
-        ActionVector x_t1_, x_t2_, y_t1_, y_t2_;
-
-    public:
-        SecondOrderFilter(float b0, float b1, float b2, float a1, float a2)
-            : b0_(b0), b1_(b1), b2_(b2), a1_(a1), a2_(a2) {
-            reset();
-        }
-
-        void reset() override {
-            x_t1_.setZero();
-            x_t2_.setZero();
-            y_t1_.setZero();
-            y_t2_.setZero();
-        }
-
-        [[nodiscard]] ActionVector apply(const ActionVector& action) override {
-            ActionVector filtered_action = b0_ * action + b1_ * x_t1_ + b2_ * x_t2_ 
-                                        - a1_ * y_t1_ - a2_ * y_t2_;
-
-            // Shift history states
-            x_t2_ = x_t1_;
-            x_t1_ = action;
-            
-            y_t2_ = y_t1_;
-            y_t1_ = filtered_action;
-
-            return filtered_action;
-        }
-
-        [[nodiscard]] Eigen::VectorXf get_observation() const override {
-            ActionVector target_velocity = y_t1_ - y_t2_;
-            
-            Eigen::VectorXf obs(ActionSize * 2);
-            obs << y_t1_, target_velocity;
-            
-            return obs;
+        [[nodiscard]] static constexpr std::size_t get_observation_size() {
+            return 0;
         }
 };
