@@ -25,7 +25,7 @@ ros2_cpp_binary(
 ros2_cpp_binary(
     name = "go2_run_position_policy",
     srcs = ["go2_run_position_policy.cc"],
-    data = ["//onnx_models:position_control_models"],
+    data = ["//onnx_models:position_control_models", "//onnx_models:handstand_models"],
     deps = [
         "//src/go2/lib/utils:constants",
         "//src/go2/lib/utils:containers",

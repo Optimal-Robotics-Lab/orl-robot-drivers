@@ -10,7 +10,6 @@
 #include "rclcpp/rclcpp.hpp"
 
 #include "src/go2/msgs/unitree_go_msgs.h"
-#include "nav_msgs/msg/odometry.hpp"
 
 
 using Go2State = unitree_go::msg::LowState;

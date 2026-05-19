@@ -92,15 +92,6 @@ class PositionControlPolicy : public rclcpp::Node {
          */
         absl::Status set_control_mode(go2::constants::HighLevelControlMode mode) {
             std::lock_guard<std::mutex> lock(mutex);
-            
-            if (mode == go2::constants::HighLevelControlMode::POLICY) {
-                if (!unitree_driver->has_state_estimation()) {
-                    return absl::FailedPreconditionError(
-                        "[Position Control Policy] Cannot switch to POLICY: EKF odometry is not yet publishing."
-                    );
-                }
-            }
-
             control_mode = mode;
             return absl::OkStatus();
         };
