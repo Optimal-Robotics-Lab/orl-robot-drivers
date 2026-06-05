@@ -23,6 +23,14 @@ filegroup(
 )
 
 filegroup(
+    name = "backflip_models",
+    srcs = glob([
+        "backflip/*.onnx",
+    ]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
     name = "legacy_models",
     srcs = glob([
         "legacy/*.onnx",

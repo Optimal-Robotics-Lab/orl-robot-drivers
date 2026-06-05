@@ -197,6 +197,7 @@ class BackflipControlPolicy : public rclcpp::Node {
         // Policy Specific Variable:
         std::atomic<float> phase{0.0f};
         std::chrono::duration<float> flip_duration_s{0.8f};
+        bool is_flipping = false;
         float phase_increment;
 
         // ONNX Variables
@@ -361,18 +362,20 @@ absl::Status BackflipControlPolicy<FilterType>::make_observation() {
     // Get Filter Observation:
     const auto filter_observation = filter.get_observation();
 
-    // Get Phase and Clamp
+    // Get Phase and Clamp:
     float current_phase = this->phase.load(std::memory_order_relaxed);
-    float next_phase;
-    do {
-        next_phase = std::min(1.0f, current_phase + this->phase_increment);
-    } while (
-        !this->phase.compare_exchange_weak(
-            current_phase, next_phase,
-            std::memory_order_release,
-            std::memory_order_relaxed
-        )
-    );
+    float next_phase = current_phase;
+    if (this->is_flipping) {
+        do {
+            next_phase = std::min(1.0f, current_phase + this->phase_increment);
+        } while (
+            !this->phase.compare_exchange_weak(
+                current_phase, next_phase,
+                std::memory_order_release,
+                std::memory_order_relaxed
+            )
+        );
+    }
 
     // Set Observation:
     Eigen::Vector<float, Eigen::Dynamic> observation;
@@ -400,7 +403,7 @@ Go2Command BackflipControlPolicy<FilterType>::policy_command() {
     const auto& policy_output = onnx_driver->get_policy_output();
     
     const auto actions = Eigen::Map<const go2::constants::MotorVector<float>>(policy_output.data());
-    // Apply Go2Filter (NOTE: updated from filter-> to filter.):
+
     const go2::constants::MotorVector<float> filtered_actions = filter.apply(actions);
     const go2::constants::MotorVector<float> position_setpoints = default_position + master_gain * (action_scale.cwiseProduct(filtered_actions));
 
@@ -438,7 +441,7 @@ void BackflipControlPolicy<FilterType>::policy_callback() {
 
     // Get Motor Command:
     Go2Command command;
-
+    bool is_flipping = false;
     {
         std::lock_guard<std::mutex> lock(mutex);
         switch (control_mode) {
@@ -454,7 +457,8 @@ void BackflipControlPolicy<FilterType>::policy_callback() {
                 command = go2::utilities::damping_command();
                 break;
             case go2::constants::HighLevelControlMode::POLICY:
-                command = this->policy_command();
+                this->is_flipping = true;
+                // command = this->policy_command();
                 break;
             case go2::constants::HighLevelControlMode::DISABLE:
                 command = go2::utilities::disable_command();
@@ -465,6 +469,6 @@ void BackflipControlPolicy<FilterType>::policy_callback() {
     }
 
     // Send Motor Command:
-    std::ignore = unitree_driver->update_command(command);
+    // std::ignore = unitree_driver->update_command(command);
 
 };
