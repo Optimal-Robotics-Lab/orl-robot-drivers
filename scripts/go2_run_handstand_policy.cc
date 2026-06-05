@@ -60,7 +60,7 @@ int main(int argc, char * argv[]) {
     );
 
     std::filesystem::path onnx_model_path = 
-        runfiles->Rlocation("orl-robot-drivers/onnx_models/position_control/distinctive-fog-2_jax.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/handstand/soft-salad-40_jax.onnx");
     
     absl::Status result;
     auto ControllerDriver = std::make_shared<WirelessControllerDriver>();
@@ -163,11 +163,11 @@ int main(int argc, char * argv[]) {
                 result.Update(PolicyDriver->set_master_gain(master_gain));
                 ABSL_CHECK(result.ok()) << result.message();
             }
-            
-            // Fast Control:
-            float x_scale = 1.5f;
-            float y_scale = 1.0f;
-            float z_scale = 3.0f;
+
+            // Handstand Control:
+            float x_scale = 0.5f;
+            float y_scale = 0.5f;
+            float z_scale = 0.5f;
 
             float x = x_scale * ControllerDriver->get_left_stick_y();
             float y = -1.0f * y_scale * ControllerDriver->get_left_stick_x();
