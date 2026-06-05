@@ -60,7 +60,7 @@ int main(int argc, char * argv[]) {
     );
 
     std::filesystem::path onnx_model_path = 
-        runfiles->Rlocation("orl-robot-drivers/onnx_models/handstand/jolly-silence-88_jax.onnx");
+        runfiles->Rlocation("orl-robot-drivers/onnx_models/backflip/jolly-silence-88_jax.onnx");
     
     absl::Status result;
     auto ControllerDriver = std::make_shared<WirelessControllerDriver>();
@@ -118,9 +118,11 @@ int main(int argc, char * argv[]) {
         }
         else {
             if (ControllerDriver->is_pressed(WirelessControllerDriver::Button::A)) {
-                std::cout << "Setting control mode to POLICY." << std::endl;
-                result.Update(PolicyDriver->set_control_mode(go2::constants::HighLevelControlMode::POLICY));
-                ABSL_CHECK(result.ok()) << result.message();
+                if (PolicyDriver->get_control_mode() != go2::constants::HighLevelControlMode::POLICY) {
+                    std::cout << "Setting control mode to POLICY." << std::endl;
+                    result.Update(PolicyDriver->set_control_mode(go2::constants::HighLevelControlMode::POLICY));
+                    ABSL_CHECK(result.ok()) << result.message();
+                }
             }
 
             if (ControllerDriver->is_pressed(WirelessControllerDriver::Button::B)) {

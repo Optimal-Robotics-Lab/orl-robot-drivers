@@ -441,7 +441,7 @@ void BackflipControlPolicy<FilterType>::policy_callback() {
 
     // Get Motor Command:
     Go2Command command;
-    bool is_flipping = false;
+    this->is_flipping = false;
     {
         std::lock_guard<std::mutex> lock(mutex);
         switch (control_mode) {
@@ -458,7 +458,7 @@ void BackflipControlPolicy<FilterType>::policy_callback() {
                 break;
             case go2::constants::HighLevelControlMode::POLICY:
                 this->is_flipping = true;
-                // command = this->policy_command();
+                command = this->policy_command();
                 break;
             case go2::constants::HighLevelControlMode::DISABLE:
                 command = go2::utilities::disable_command();
@@ -469,6 +469,6 @@ void BackflipControlPolicy<FilterType>::policy_callback() {
     }
 
     // Send Motor Command:
-    // std::ignore = unitree_driver->update_command(command);
+    std::ignore = unitree_driver->update_command(command);
 
 };
