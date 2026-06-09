@@ -75,7 +75,6 @@ namespace robot::go2::containers {
     };
 
     struct HeightMap {
-        // ## Header ##
         std::chrono::time_point<std::chrono::system_clock, std::chrono::duration<double>> stamp{};
         std::string frame_id{};
         float resolution{0.0f};
