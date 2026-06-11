@@ -7,6 +7,7 @@ ros2_bag(
         "record",
         "/lowcmd",
         "/lowstate",
+        "/policy_command",
     ],
     idl_deps = [
         "//src/go2/msgs:unitree_api",
