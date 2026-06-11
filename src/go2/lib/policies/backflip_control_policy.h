@@ -474,7 +474,7 @@ void BackflipControlPolicy<FilterType>::policy_callback() {
     }
 
     // Send Motor Command:
-    std::ignore = unitree_driver->update_command(command);
+    // std::ignore = unitree_driver->update_command(command);
 
     // Publish Phase Variable for Logging:
     if (policy_command_publisher_) {
