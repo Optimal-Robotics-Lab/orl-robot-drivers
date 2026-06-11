@@ -20,7 +20,7 @@
 #include "Eigen/Dense"
 
 #include "rclcpp/rclcpp.hpp"
-#include "geometry_msgs/msg/vector3.hpp"
+#include "std_msgs/msg/float32.hpp"
 
 #include "src/go2/lib/driver/onnx_driver.h"
 #include "src/go2/lib/driver/go2_driver.h"
@@ -218,7 +218,7 @@ class BackflipControlPolicy : public rclcpp::Node {
         mutable std::mutex mutex;
 
         // ROS2 Thread:
-        rclcpp::Publisher<geometry_msgs::msg::Vector3>::SharedPtr policy_command_publisher_;
+        rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr policy_command_publisher_;
         rclcpp::executors::MultiThreadedExecutor executor;
         std::jthread executor_thread;
         rclcpp::TimerBase::SharedPtr timer_;
@@ -259,6 +259,11 @@ BackflipControlPolicy<FilterType>::BackflipControlPolicy(
     rclcpp::QoS qos_profile(10);
     qos_profile.best_effort();
 
+    // Create Publisher Node:
+    policy_command_publisher_ = this->create_publisher<std_msgs::msg::Float32>(
+        "/policy_command",
+        qos_profile
+    );
 }
 
 template <typename FilterType>
@@ -470,5 +475,12 @@ void BackflipControlPolicy<FilterType>::policy_callback() {
 
     // Send Motor Command:
     std::ignore = unitree_driver->update_command(command);
+
+    // Publish Phase Variable for Logging:
+    if (policy_command_publisher_) {
+        std_msgs::msg::Float32 phase_msg;
+        phase_msg.data = this->get_phase();
+        policy_command_publisher_->publish(phase_msg);
+    }
 
 };

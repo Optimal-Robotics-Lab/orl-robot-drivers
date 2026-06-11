@@ -121,6 +121,25 @@ int main(int argc, char** argv) {
         std::array<float, 3> accelerometer{};
     };
 
+    struct PowerMessageData {
+        rcutils_time_point_value_t time_stamp_ns{ 0 };
+        float voltage{0.0f};
+        float current{0.0f};
+    };
+
+    struct BMSMessageData {
+        rcutils_time_point_value_t time_stamp_ns{ 0 };
+        uint8_t version_high;
+        uint8_t version_low;
+        uint8_t status;
+        uint8_t soc;
+        int32_t current;
+        uint16_t cycle;
+        std::array<uint8_t, 2> bq_ntc{};
+        std::array<uint8_t, 2> mcu_ntc{};
+        std::array<uint16_t, 15> cell_vol{};
+    };
+
     struct ViconMessageData {
         rcutils_time_point_value_t time_stamp_ns{ 0 };
         std::array<float, 3> position{};
@@ -136,6 +155,8 @@ int main(int argc, char** argv) {
     std::vector<MotorMessageData> command_history;
     std::vector<ContactMessageData> contact_history;
     std::vector<IMUMessageData> imu_history;
+    std::vector<PowerMessageData> power_history;
+    std::vector<BMSMessageData> bms_history;
     std::vector<ViconMessageData> vicon_history;
     std::vector<PolicyCommandData> policy_command_history;
 
@@ -181,6 +202,16 @@ int main(int argc, char** argv) {
                 accelerometer[i] = msg.imu_state.accelerometer[i];
             }
 
+            // BMS State:
+            std::array<uint8_t, 2> bq_ntc{}, mcu_ntc{};
+            std::array<uint16_t, 15> cell_vol{};
+            for (size_t i = 0; i < 2; ++i) {
+                bq_ntc[i] = msg.bms_state.bq_ntc[i];
+                mcu_ntc[i] = msg.bms_state.mcu_ntc[i];
+            }
+            for (size_t i = 0; i < 15; ++i)
+                cell_vol[i] = msg.bms_state.cell_vol[i];
+
             auto state_data = MotorMessageData{
                 .time_stamp_ns = time_stamp_ns,
                 .positions = positions,
@@ -202,10 +233,30 @@ int main(int argc, char** argv) {
                 .accelerometer = accelerometer
             };
 
+            auto power_data = PowerMessageData{
+                .time_stamp_ns = time_stamp_ns,
+                .voltage = msg.power_v,
+                .current = msg.power_a,
+            };
+
+            auto bms_data = BMSMessageData{
+                .time_stamp_ns = time_stamp_ns,
+                .version_high = msg.bms_state.version_high,
+                .version_low = msg.bms_state.version_low,
+                .status = msg.bms_state.status,
+                .soc = msg.bms_state.soc,
+                .current = msg.bms_state.current,
+                .cycle = msg.bms_state.cycle,
+                .bq_ntc = bq_ntc,
+                .mcu_ntc = mcu_ntc,
+                .cell_vol = cell_vol
+            };
+
             state_history.push_back(state_data);
             contact_history.push_back(contact_data);
             imu_history.push_back(imu_data);
-
+            bms_history.push_back(bms_data);
+            power_history.push_back(power_data);
         } 
         else if (type_name == "unitree_go/msg/LowCmd") {
             auto time_stamp_ns = serialized_message->time_stamp;
@@ -316,6 +367,34 @@ int main(int argc, char** argv) {
         imu_file << "\n";
     }
     imu_file.close();
+
+    std::ofstream power_file("power_history.csv");
+    for (const auto& entry : power_history) {
+        power_file << entry.time_stamp_ns;
+        power_file << "," << entry.voltage;
+        power_file << "," << entry.current;
+        power_file << "\n";
+    }
+    power_file.close();
+
+    std::ofstream bms_file("bms_history.csv");
+    for (const auto& entry : bms_history) {
+        bms_file << entry.time_stamp_ns;
+        bms_file << "," << static_cast<int>(entry.version_high);
+        bms_file << "," << static_cast<int>(entry.version_low);
+        bms_file << "," << static_cast<int>(entry.status);
+        bms_file << "," << static_cast<int>(entry.soc);
+        bms_file << "," << entry.current;
+        bms_file << "," << entry.cycle;
+        for (const auto& ntc : entry.bq_ntc)
+            bms_file << "," << static_cast<int>(ntc);
+        for (const auto& ntc : entry.mcu_ntc)
+            bms_file << "," << static_cast<int>(ntc);
+        for (const auto& vol : entry.cell_vol)
+        bms_file << "," << vol;
+        bms_file << "\n";
+    }
+    bms_file.close();
 
     std::ofstream command_file("command_history.csv");
     for (const auto& entry : command_history) {
